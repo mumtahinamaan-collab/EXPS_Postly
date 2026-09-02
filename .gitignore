@@ -1,0 +1,22 @@
+# Backend
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+.env
+.env.*
+media/
+
+# Frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
