@@ -12,12 +12,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,6 +32,7 @@ SECRET_KEY = 'django-insecure-g3+jl9i*4ghuu07l@83o38^cttem(=&mgu!h^qicucfugd#z0s
 DEBUG = True
 INNGEST_SIGNING_KEY = os.getenv("INNGEST_SIGNING_KEY")
 INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY")
+CLERK_WEBHOOK_SIGNING_SECRET = os.getenv("CLERK_WEBHOOK_SIGNING_SECRET")
 
 ALLOWED_HOSTS = [
     "exps-postly.onrender.com",
