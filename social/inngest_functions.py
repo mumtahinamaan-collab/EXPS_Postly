@@ -5,7 +5,7 @@ from .models import User
 
 inngest_client = inngest.Inngest(
     app_id="postly-app",
-    is_production=False,
+    is_production=True,
 )
 
 
