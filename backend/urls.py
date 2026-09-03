@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from social.clerk_webhook import clerk_webhook
 
 import inngest.django
 
@@ -27,6 +28,7 @@ urlpatterns = [
             sync_user_deletion,
         ],
     ),
+    path("api/clerk/webhook/", clerk_webhook),
 ]
 
 urlpatterns += static(
