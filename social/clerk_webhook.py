@@ -61,8 +61,5 @@ async def clerk_webhook(request):
             status=200,
         )
 
-    except Exception:
-        return JsonResponse(
-            {"message": "Invalid webhook"},
-            status=400,
-        )
+    except Exception as e:
+        return JsonResponse({"message": str(e)},status=400,)
