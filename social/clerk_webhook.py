@@ -1,4 +1,5 @@
 import os
+import traceback
 
 import inngest
 from django.http import JsonResponse
@@ -61,5 +62,10 @@ async def clerk_webhook(request):
             status=200,
         )
 
-    except Exception as e:
-        return JsonResponse({"message": str(e)},status=400,)
+    except Exception:
+        traceback.print_exc()
+
+        return JsonResponse(
+            {"message": "Webhook processing failed"},
+            status=400,
+    )
