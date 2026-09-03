@@ -6,6 +6,7 @@ from .models import User
 inngest_client = inngest.Inngest(
     app_id="postly-app",
     is_production=True,
+    signing_key=os.getenv("INNGEST_SIGNING_KEY"),
 )
 
 

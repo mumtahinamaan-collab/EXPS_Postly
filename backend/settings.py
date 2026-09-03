@@ -28,6 +28,8 @@ SECRET_KEY = 'django-insecure-g3+jl9i*4ghuu07l@83o38^cttem(=&mgu!h^qicucfugd#z0s
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+INNGEST_SIGNING_KEY = os.getenv("INNGEST_SIGNING_KEY")
+INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY")
 
 ALLOWED_HOSTS = [
     "exps-postly.onrender.com",
