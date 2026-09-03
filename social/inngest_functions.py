@@ -1,3 +1,4 @@
+
 import inngest
 import os
 
@@ -8,7 +9,6 @@ inngest_client = inngest.Inngest(
     app_id="postly-app",
     is_production=True,
     event_key=os.getenv("INNGEST_EVENT_KEY"),
-
     signing_key=os.getenv("INNGEST_SIGNING_KEY"),
 )
 
@@ -49,6 +49,7 @@ def sync_user_creation(data):
         "created": created,
     }
 
+
 # Inngest Function to create user data in database
 
 @inngest_client.create_function(
@@ -57,14 +58,15 @@ def sync_user_creation(data):
         event="clerk/user.created"
     ),
 )
-async def sync_user_from_clerk(ctx: inngest.Context):
+def sync_user_from_clerk(ctx: inngest.ContextSync):
     data = ctx.event.data
 
-    return await ctx.step.run(
+    return ctx.step.run(
         "create-user",
         sync_user_creation,
         data,
     )
+
 
 # Inngest Function to update user data in database
 
@@ -75,6 +77,7 @@ async def sync_user_from_clerk(ctx: inngest.Context):
     ),
 )
 async def sync_user_updation(ctx: inngest.Context):
+
     data = ctx.event.data
 
     clerk_id = data["id"]
@@ -105,6 +108,7 @@ async def sync_user_updation(ctx: inngest.Context):
 
 
 def update_user_data(clerk_id, email, full_name):
+
     updated = User.objects.filter(id=clerk_id).update(
         email=email,
         full_name=full_name,
@@ -115,7 +119,9 @@ def update_user_data(clerk_id, email, full_name):
         "user_id": clerk_id,
     }
 
+
 # Inngest Function to delete user from database
+
 @inngest_client.create_function(
     fn_id="delete-user-with-clerk",
     trigger=inngest.TriggerEvent(
@@ -123,6 +129,7 @@ def update_user_data(clerk_id, email, full_name):
     ),
 )
 async def sync_user_deletion(ctx: inngest.Context):
+
     data = ctx.event.data
 
     clerk_id = data["id"]
@@ -135,11 +142,11 @@ async def sync_user_deletion(ctx: inngest.Context):
 
 
 def delete_user(clerk_id):
+
     deleted, _ = User.objects.filter(id=clerk_id).delete()
 
     return {
         "success": deleted > 0,
         "user_id": clerk_id,
     }
-
 
