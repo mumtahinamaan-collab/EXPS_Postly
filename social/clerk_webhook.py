@@ -1,5 +1,5 @@
 import os
-import traceback
+import json
 
 import inngest
 from django.http import JsonResponse
@@ -35,10 +35,15 @@ async def clerk_webhook(request):
         }
 
         webhook = Webhook(signing_secret)
-        event = webhook.verify(payload, headers)
+
+        # Verify signature first
+        webhook.verify(payload, headers)
+
+        # Svix 2.x no longer returns parsed JSON from verify()
+        event = json.loads(payload)
 
         event_type = event.get("type")
-        event_data = event.get("data", {})
+        event_data = event.get("data") or {}
 
         if event_type not in {
             "user.created",
@@ -63,9 +68,10 @@ async def clerk_webhook(request):
         )
 
     except Exception:
+        import traceback
         traceback.print_exc()
 
         return JsonResponse(
             {"message": "Webhook processing failed"},
             status=400,
-    )
+        )
