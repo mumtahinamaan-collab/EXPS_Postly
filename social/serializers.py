@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Post, Comment Message
+from .models import User, Post, Comment, Message
 
 
 # ==================================================
@@ -108,11 +108,18 @@ class CommentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+
+# ==================================================
+# MESSAGE SERIALIZER
+# ==================================================
+
 class MessageSerializer(serializers.ModelSerializer):
+
     from_user_id = serializers.CharField(
         source="from_user.id",
         read_only=True
     )
+
     to_user_id = serializers.CharField(
         source="to_user.id",
         read_only=True
@@ -129,4 +136,5 @@ class MessageSerializer(serializers.ModelSerializer):
             "media_url",
             "seen",
             "created_at",
+            "updated_at",
         ]
