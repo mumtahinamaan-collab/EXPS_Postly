@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { dummyPostsData } from '../assets/dummyData'
 import Loading from '../components/Loading'
-import StoriesBar from '../components/StoriesBar'
 import PostCard from '../components/PostCard'
 
 const Feed = () => {
@@ -22,9 +21,8 @@ const Feed = () => {
       <div className='w-full max-w-2xl'>
 
 
-        <StoriesBar />
 
-        <div className='p-4 space-y-6'>
+        <div className='flex flex-col gap-4'>
           {feeds.map((post) => (
             <PostCard key={post._id} post={post} />
           ))}

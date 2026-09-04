@@ -3,11 +3,10 @@ import Sidebar from "../components/Sidebar";
 import Loading  from "../components/Loading";
 import { Outlet } from 'react-router-dom' 
 import { X, Menu } from 'lucide-react' 
-import { users } from "../assets/dummyData"; 
-
+import { useSelector } from "react-redux";
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const user = users;
+  const user = useSelector((state) => state.user.value);
 
   return user ? (
     <div className="flex w-full h-screen">

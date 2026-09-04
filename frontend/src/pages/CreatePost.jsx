@@ -1,9 +1,10 @@
 
 import React, { useState } from "react";
-import { dummyUserData } from "../assets/dummyData";
 import toast from "react-hot-toast";
 import { Image, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
 
 const CreatePost = () => {
   const [content, setContent] = useState("");
@@ -12,7 +13,7 @@ const CreatePost = () => {
 
   const handleSubmit = async () => {};
 
-  const user = dummyUserData;
+  const user = useSelector((state) => state.user.value);
   const navigate = useNavigate();
 
   const bgColors = [

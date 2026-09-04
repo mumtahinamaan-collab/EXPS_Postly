@@ -1,358 +1,26 @@
-import React from "react";
+
+import React, { useState } from "react";
 import {
   UserPlus,
   UserCheck,
-  UserRoundPen,
-  UserRoundCheck,
-  UserRoundX,
-  MessageCircle,
   MapPin,
-  Plus,
 } from "lucide-react";
+
 import { dummyUserData } from "../assets/dummyData";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+const UserCard = ({ user }) => {
+  const currentUser = useSelector((state) => state.user.value);
 
-const UserCard = ({ user, connectionType }) => {
-  const currentUser = dummyUserData;
   const navigate = useNavigate();
 
-  // --------------------------------
-  // FOLLOW
-  // --------------------------------
+  const [isFollowing, setIsFollowing] = useState(
+    currentUser?.following?.includes(user?._id) || false
+  );
+
   const handleFollow = (e) => {
     e.stopPropagation();
-
-    console.log("Follow user:", user._id);
-  };
-
-  // --------------------------------
-  // ACCEPT REQUEST
-  // --------------------------------
-  const handleAccept = (e) => {
-    e.stopPropagation();
-
-    console.log("Accept request:", user._id);
-  };
-
-  // --------------------------------
-  // REJECT REQUEST
-  // --------------------------------
-  const handleReject = (e) => {
-    e.stopPropagation();
-
-    console.log("Reject request:", user._id);
-  };
-
-  // --------------------------------
-  // MESSAGE
-  // --------------------------------
-  const handleMessage = (e) => {
-    e.stopPropagation();
-
-    console.log("Message user:", user._id);
-  };
-
-  // --------------------------------
-  // RELATIONSHIP CHECK
-  // --------------------------------
-
-  const following = currentUser?.following || [];
-  const followers = currentUser?.followers || [];
-  const sentRequests = currentUser?.sentRequests || [];
-  const receivedRequests = currentUser?.receivedRequests || [];
-
-  const isFollowing = following.includes(user._id);
-  const isFollower = followers.includes(user._id);
-  const isRequested = sentRequests.includes(user._id);
-  const isPending = receivedRequests.includes(user._id);
-
-  // --------------------------------
-  // CONNECTION PAGE STATUS
-  // --------------------------------
-
-  const isFollowersPage = connectionType === "Followers";
-  const isFollowingPage = connectionType === "Following";
-  const isPendingPage = connectionType === "Pending";
-
-  // --------------------------------
-  // CARD BUTTON
-  // --------------------------------
-
-  const renderAction = () => {
-    // ================================
-    // PENDING REQUEST
-    // ================================
-    if (isPendingPage) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={handleAccept}
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              bg-[#1877F2]
-            
-              text-xs font-semibold text-white
-              transition hover:opacity-90
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserRoundCheck className="h-4 w-4" />
-            Accept
-          </button>
-
-          <button
-            type="button"
-            onClick={handleReject}
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              border border-red-100
-              bg-red-50
-              text-xs font-semibold text-red-500
-              transition hover:bg-red-100
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserRoundX className="h-4 w-4" />
-            Reject
-          </button>
-        </div>
-      );
-    }
-
-    // ================================
-    // FOLLOWING PAGE
-    // ================================
-    if (isFollowingPage || isFollowing) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              bg-[#1877F2]
-              text-xs font-semibold text-white
-              transition hover:opacity-90
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserCheck className="h-4 w-4" />
-            Following
-          </button>
-
-          <button
-            type="button"
-            title="Message"
-            onClick={handleMessage}
-            className="
-              flex h-9 w-10 items-center justify-center
-              rounded-lg
-              border border-[#e7e7e7]
-              bg-white
-              text-slate-500
-              transition
-              hover:border-[#f3dce8]
-              hover:bg-[#fff1f7]
-              hover:text-[#C900A8]
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <MessageCircle className="h-4 w-4" />
-          </button>
-        </div>
-      );
-    }
-
-    // ================================
-    // FOLLOWER
-    // ================================
-    if (isFollowersPage || isFollower) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={handleFollow}
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              bg-[#1877F2]
-            
-            
-              text-xs font-semibold text-white
-              transition hover:opacity-90
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserPlus className="h-4 w-4" />
-            Follow
-          </button>
-
-          <button
-            type="button"
-            title="Message"
-            onClick={handleMessage}
-            className="
-              flex h-9 w-10 items-center justify-center
-              rounded-lg
-              border border-[#e7e7e7]
-              bg-white
-              text-slate-500
-              transition
-              hover:border-[#f3dce8]
-              hover:bg-[#fff1f7]
-              hover:text-[#C900A8]
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <MessageCircle className="h-4 w-4" />
-          </button>
-        </div>
-      );
-    }
-
-    // ================================
-    // REQUESTED
-    // ================================
-    if (isRequested) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            disabled
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              border border-[#f3dce8]
-              bg-[#1877F2]
-              text-xs font-semibold text-[#C900A8]
-              cursor-default
-            "
-          >
-            <UserRoundPen className="h-4 w-4" />
-            Requested
-          </button>
-
-          <button
-            type="button"
-            title="Message"
-            onClick={handleMessage}
-            className="
-              flex h-9 w-10 items-center justify-center
-              rounded-lg
-              border border-[#e7e7e7]
-              bg-white
-              text-slate-500
-              transition
-              hover:border-[#f3dce8]
-              hover:bg-[#fff1f7]
-              hover:text-[#C900A8]
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <MessageCircle className="h-4 w-4" />
-          </button>
-        </div>
-      );
-    }
-
-    // ================================
-    // PENDING
-    // ================================
-    if (isPending) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={handleAccept}
-            className="
-              flex h-9 flex-1 items-center justify-center gap-1.5
-              rounded-lg
-              bg-[#1877F2]
-              text-xs font-semibold text-white
-              transition hover:opacity-90
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserRoundCheck className="h-4 w-4" />
-            Accept
-          </button>
-
-          <button
-            type="button"
-            onClick={handleReject}
-            className="
-              flex h-9 w-10 items-center justify-center
-              rounded-lg
-              border border-red-100
-              bg-white
-              
-              transition hover:bg-red-100
-              active:scale-95
-              cursor-pointer
-            "
-          >
-            <UserRoundX className="h-4 w-4" />
-          </button>
-        </div>
-      );
-    }
-
-    // ================================
-    // NORMAL USER
-    // ================================
-    return (
-      <div className="flex w-full gap-2">
-        <button
-          type="button"
-          onClick={handleFollow}
-          className="
-            flex h-9 flex-1 items-center justify-center gap-1.5
-            rounded-lg
-            bg-[#1877F2]
-            text-xs font-semibold text-white
-            transition hover:opacity-90
-            active:scale-95
-            cursor-pointer
-          "
-        >
-          <UserPlus className="h-4 w-4" />
-          Follow
-        </button>
-
-        <button
-          type="button"
-          title="Follow"
-          onClick={handleFollow}
-          className="
-            flex h-9 w-10 items-center justify-center
-            rounded-lg
-            border border-[#e7e7e7]
-            bg-white
-            text-slate-500
-            transition
-            hover:border-[#f3dce8]
-            hover:bg-[#fff1f7]
-            hover:text-[#C900A8]
-            active:scale-95
-            cursor-pointer
-          "
-        >
-          <Plus className="h-4 w-4" />
-        </button>
-      </div>
-    );
+    setIsFollowing((prev) => !prev);
   };
 
   return (
@@ -361,46 +29,40 @@ const UserCard = ({ user, connectionType }) => {
       className="
         group
         w-full
+        cursor-pointer
         rounded-xl
         border border-[#f3dce8]
         bg-white
         p-3
         shadow-sm
-        transition-all duration-200
+        transition-all
+        duration-200
         hover:-translate-y-0.5
         hover:border-[#e9bfd5]
         hover:shadow-md
-        cursor-pointer
       "
     >
       {/* PROFILE IMAGE */}
       <div className="flex justify-center">
-        <div
+        <img
+          src={user?.profile_picture || "/logo.png"}
+          alt={user?.full_name || "User"}
           className="
+            h-14 w-14
             rounded-full
-           
+            border-2 border-white
+            object-cover
           "
-        >
-          <img
-            src={user.profile_picture || "/logo.png"}
-            alt={user.full_name || "User"}
-            className="
-              h-14 w-14
-              rounded-full
-              border-2 border-white
-              object-cover
-            "
-          />
-        </div>
+        />
       </div>
 
       {/* NAME */}
       <div className="mt-2 text-center">
         <p className="truncate text-sm font-semibold text-slate-900">
-          {user.full_name || "User"}
+          {user?.full_name || "User"}
         </p>
 
-        {user.username && (
+        {user?.username && (
           <p className="truncate text-[11px] text-slate-400">
             @{user.username}
           </p>
@@ -409,12 +71,13 @@ const UserCard = ({ user, connectionType }) => {
 
       {/* BIO */}
       <p className="mx-auto mt-1.5 line-clamp-2 min-h-[28px] max-w-[220px] text-center text-[10px] leading-3.5 text-slate-500">
-        {user.bio || "Exploring life and connecting with amazing people."}
+        {user?.bio ||
+          "Exploring life and connecting with amazing people."}
       </p>
 
       {/* LOCATION + FOLLOWERS */}
       <div className="mt-2 flex items-center justify-center gap-2">
-        {user.location && (
+        {user?.location && (
           <div
             className="
               flex max-w-[130px] items-center gap-1
@@ -444,21 +107,59 @@ const UserCard = ({ user, connectionType }) => {
           "
         >
           <span className="font-semibold text-slate-700">
-            {user.Followers?.length || user.followers?.length || 0}
+            {user?.Followers?.length ||
+              user?.followers?.length ||
+              0}
           </span>{" "}
           Followers
         </div>
       </div>
 
-      {/* ACTION */}
+      {/* FOLLOW BUTTON */}
       <div
-        className="mt-2.5"
+        className="mt-2.5 flex justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {renderAction()}
+        <button
+          type="button"
+          onClick={handleFollow}
+          className={`
+            flex
+            h-8
+            min-w-[82px]
+            items-center
+            justify-center
+            gap-1.5
+            rounded-lg
+            px-3
+            text-xs
+            font-semibold
+            transition
+            active:scale-95
+            cursor-pointer
+            ${
+              isFollowing
+                ? "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                : "bg-[#1877F2] text-white hover:bg-[#166fe5]"
+            }
+          `}
+        >
+          {isFollowing ? (
+            <>
+              <UserCheck className="h-3.5 w-3.5" />
+              Following
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-3.5 w-3.5" />
+              Follow
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
 };
 
 export default UserCard;
+
