@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     get_user_data,
     update_user_data,
+    get_profile,
     discover_users,
     toggle_follow,
     user_social_data,
@@ -13,7 +14,6 @@ from .views import (
     post_comments,
     upload_chat_image,
     get_chat_messages,
-
 )
 
 
@@ -35,6 +35,13 @@ urlpatterns = [
         name="update-user-data"
     ),
 
+    # USER PROFILE
+    path(
+        "users/profiles/",
+        get_profile,
+        name="get-profile"
+    ),
+
     path(
         "users/discover/",
         discover_users,
@@ -52,6 +59,7 @@ urlpatterns = [
         user_social_data,
         name="user-social-data"
     ),
+
 
     # ==============================
     # POSTS
@@ -86,16 +94,21 @@ urlpatterns = [
         post_comments,
         name="post-comments"
     ),
+
+
+    # ==============================
+    # CHAT
+    # ==============================
+
     path(
         "chat/upload-image/",
         upload_chat_image,
         name="upload-chat-image"
-),   path(
-        "chat/messages/",
-        get_chat_messages,
-        name="get-chat-messages",
     ),
 
-    
-  
+    path(
+        "chat/messages/",
+        get_chat_messages,
+        name="get-chat-messages"
+    ),
 ]

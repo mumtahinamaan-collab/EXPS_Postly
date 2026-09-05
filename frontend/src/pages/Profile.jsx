@@ -13,6 +13,7 @@ import moment from "moment";
 
 const Profile = () => {
   const { profileId } = useParams();
+  const { getToken } = useAuth();
 
   const [connectionTab, setConnectionTab] = useState(null);
 
@@ -23,7 +24,23 @@ const Profile = () => {
 
   const navigate = useNavigate();
 
-  const fetchUser = async () => {
+  const fetchUser = async (profileId) => {
+    const token = await  getToken
+    try{
+        const { data } = await api.post('/users/profiles',{profileId}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (data.success) {
+          setUser(data.profile);
+        }
+        
+        setPosts(data.posts);
+    }
+    catch (error) {
+      console.error("Error fetching user data:", error);
+    }
     setUser(dummyUserData);
     setPosts(dummyPostsData);
   };

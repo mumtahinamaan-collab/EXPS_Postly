@@ -14,6 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
+
         fields = [
             "id",
             "email",
@@ -23,6 +24,15 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_picture",
             "cover_photo",
             "location",
+            "created_at",
+            "updated_at",
+            "followers_count",
+            "following_count",
+        ]
+
+        read_only_fields = [
+            "id",
+            "email",
             "created_at",
             "updated_at",
             "followers_count",
@@ -50,6 +60,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
+
         fields = [
             "id",
             "user",
@@ -63,29 +74,44 @@ class PostSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+        read_only_fields = [
+            "id",
+            "user",
+            "likes_count",
+            "comments_count",
+            "is_liked",
+            "created_at",
+            "updated_at",
+        ]
+
     def get_likes_count(self, obj):
         return getattr(
             obj,
             "likes_count",
-            obj.likes.count()
+            obj.likes.count(),
         )
 
     def get_comments_count(self, obj):
         return getattr(
             obj,
             "comments_count",
-            obj.comments.count()
+            obj.comments.count(),
         )
 
     def get_is_liked(self, obj):
 
         request = self.context.get("request")
 
-        if not request or not request.user:
+        if not request:
+            return False
+
+        user = getattr(request, "user", None)
+
+        if not user:
             return False
 
         return obj.likes.filter(
-            id=request.user.id
+            id=user.id
         ).exists()
 
 
@@ -99,11 +125,19 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
+
         fields = [
             "id",
             "post",
             "user",
             "content",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "user",
             "created_at",
             "updated_at",
         ]
@@ -117,16 +151,17 @@ class MessageSerializer(serializers.ModelSerializer):
 
     from_user_id = serializers.CharField(
         source="from_user.id",
-        read_only=True
+        read_only=True,
     )
 
     to_user_id = serializers.CharField(
         source="to_user.id",
-        read_only=True
+        read_only=True,
     )
 
     class Meta:
         model = Message
+
         fields = [
             "id",
             "from_user_id",
@@ -134,6 +169,15 @@ class MessageSerializer(serializers.ModelSerializer):
             "text",
             "message_type",
             "media_url",
+            "seen",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "from_user_id",
+            "to_user_id",
             "seen",
             "created_at",
             "updated_at",
