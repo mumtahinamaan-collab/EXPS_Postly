@@ -5,46 +5,15 @@ from django.db import models
 # ==================================================
 # USER
 # ==================================================
-
 class User(models.Model):
-    id = models.CharField(
-        primary_key=True,
-        max_length=100,
-        editable=False
-    )
-
+    id = models.CharField(primary_key=True, max_length=100, editable=False)
     email = models.EmailField()
-
-    full_name = models.CharField(
-        max_length=255
-    )
-
-    username = models.CharField(
-        max_length=150,
-        unique=True
-    )
-
-    bio = models.TextField(
-        default='Hey there! I am using Postly.'
-    )
-
-    profile_picture = models.ImageField(
-        upload_to='profile_pictures/',
-        blank=True,
-        null=True
-    )
-
-    cover_photo = models.ImageField(
-        upload_to='cover_photos/',
-        blank=True,
-        null=True
-    )
-
-    location = models.CharField(
-        max_length=255,
-        default='',
-        blank=True
-    )
+    full_name = models.CharField(max_length=255)
+    username = models.CharField(max_length=150, unique=True)
+    bio = models.TextField(default='Hey there! I am using Postly.')
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='cover_photos/', blank=True, null=True)
+    location = models.CharField(max_length=255, default='', blank=True)
 
     followers = models.ManyToManyField(
         'self',
@@ -60,19 +29,23 @@ class User(models.Model):
         blank=True
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
 
     def __str__(self):
         return self.username
 
     class Meta:
         db_table = 'users'
+
 
 
 # ==================================================
