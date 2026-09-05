@@ -1,10 +1,13 @@
+
 from django.db.models import Count, Q
 
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
     permission_classes,
+    parser_classes,
 )
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -22,10 +25,15 @@ def get_image_url(image):
     if not image:
         return None
 
+    image_value = str(image)
+
+    if image_value.startswith("http://") or image_value.startswith("https://"):
+        return image_value
+
     try:
         return image.url
     except (ValueError, AttributeError):
-        return str(image)
+        return image_value
 
 
 def serialize_user(user):
@@ -137,6 +145,7 @@ def get_user_data(request):
 @api_view(["POST"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def update_user_data(request):
 
     user = request.user
@@ -197,12 +206,10 @@ def update_user_data(request):
 
     if profile_picture:
 
-        upload = imagekit.upload_file(
-            file=profile_picture,
+        upload = imagekit.files.upload(
+            file=profile_picture.read(),
             file_name=profile_picture.name,
-            options={
-                "folder": "postly/profile_pictures"
-            },
+            folder="/postly/profile_pictures",
         )
 
         user.profile_picture = upload.url
@@ -217,12 +224,10 @@ def update_user_data(request):
 
     if cover_photo:
 
-        upload = imagekit.upload_file(
-            file=cover_photo,
+        upload = imagekit.files.upload(
+            file=cover_photo.read(),
             file_name=cover_photo.name,
-            options={
-                "folder": "postly/cover_photos"
-            },
+            folder="/postly/cover_photos",
         )
 
         user.cover_photo = upload.url
@@ -674,6 +679,7 @@ def user_social_data(request, user_id):
 @api_view(["POST"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def add_post(request):
 
     user = request.user
@@ -695,12 +701,10 @@ def add_post(request):
 
     for image in uploaded_images:
 
-        upload = imagekit.upload_file(
-            file=image,
+        upload = imagekit.files.upload(
+            file=image.read(),
             file_name=image.name,
-            options={
-                "folder": "postly/posts"
-            },
+            folder="/postly/posts",
         )
 
         image_urls.append(
@@ -1115,6 +1119,7 @@ def post_comments(request, post_id):
 @api_view(["POST"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def upload_chat_image(request):
 
     image = request.FILES.get(
@@ -1132,29 +1137,13 @@ def upload_chat_image(request):
 
     try:
 
-        upload = imagekit.upload_file(
-            file=image,
+        upload = imagekit.files.upload(
+            file=image.read(),
             file_name=image.name,
-            options={
-                "folder": "postly/chat_images"
-            },
+            folder="/postly/chat_images",
         )
 
-        media_url = imagekit.url({
-            "path": upload.file_path,
-
-            "transformation": [
-                {
-                    "quality": "auto"
-                },
-                {
-                    "format": "webp"
-                },
-                {
-                    "width": 1280
-                },
-            ],
-        })
+        media_url = upload.url
 
         return Response({
             "success": True,
@@ -1291,3 +1280,7 @@ def get_chat_messages(request):
             for message in messages
         ],
     })
+
+
+
+

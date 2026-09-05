@@ -1,4 +1,6 @@
-
+import { useAuth } from "@clerk/react";
+import toast from "react-hot-toast";
+import api from "../api/axios";
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 
@@ -8,10 +10,12 @@ import UserProfileInfo from "../components/UserProfileInfo";
 import PostCard from "../components/PostCard";
 import ProfileModal from "../components/ProfileModal";
 import FollowersFollowing from "../components/FollowersFollowing";
+import { useSelector } from "react-redux";
 
 import moment from "moment";
 
 const Profile = () => {
+  const currentUser = useSelector((state) => state.user.value);
   const { profileId } = useParams();
   const { getToken } = useAuth();
 
@@ -25,29 +29,36 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const fetchUser = async (profileId) => {
-    const token = await  getToken
+    const token = await  getToken()
     try{
-        const { data } = await api.post('/users/profiles',{profileId}, {
+        const { data } = await api.post('/users/profiles/',{profileId}, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         if (data.success) {
           setUser(data.profile);
-        }
-        
-        setPosts(data.posts);
+          setPosts(data.posts);
+        }else{
+          toast.error(data.message)
+        }   
     }
     catch (error) {
-      console.error("Error fetching user data:", error);
+      toast.error(error.message);
     }
-    setUser(dummyUserData);
-    setPosts(dummyPostsData);
+ 
   };
 
   useEffect(() => {
-    fetchUser();
-  }, [profileId]);
+    if (profileId) {
+      fetchUser(profileId);
+    }
+    else{
+      fetchUser(currentUser?.id);
+
+
+    }
+  }, [profileId, currentUser]);
 
   const userId = user?._id || user?.id || profileId;
 
