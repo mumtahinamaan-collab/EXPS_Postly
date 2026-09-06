@@ -324,9 +324,28 @@ def get_profile(request):
     # TOTAL LIKES
     # ----------------------------------------------
 
-    total_likes = sum(
-        post.likes_count
-        for post in posts
+        # ----------------------------------------------
+    # LIKED POSTS
+    # ----------------------------------------------
+
+    liked_posts = (
+        Post.objects
+        .filter(
+            likes__id=user.id
+        )
+        .distinct()
+        .annotate(
+            likes_count=Count(
+                "likes",
+                distinct=True
+            ),
+            comments_count=Count(
+                "comments",
+                distinct=True
+            ),
+        )
+        .select_related("user")
+        .order_by("-created_at")
     )
 
     # ----------------------------------------------
