@@ -1,18 +1,17 @@
-
 import React, { useState } from "react";
 import {
   UserPlus,
   UserCheck,
+  UserMinus,
   Users,
   X,
 } from "lucide-react";
 
+import { useAuth } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-import {
-  dummyFollowersData,
-  dummyFollowingData,
-} from "../assets/dummyData";
+import api from "../api/axios";
 
 const FollowersFollowing = ({
   user,
@@ -20,11 +19,13 @@ const FollowersFollowing = ({
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [loadingUserId, setLoadingUserId] = useState(null);
 
   const navigate = useNavigate();
+  const { getToken } = useAuth();
 
-  const followers = user?.followersData || dummyFollowersData || [];
-  const following = user?.followingData || dummyFollowingData || [];
+  const followers = user?.followersData || [];
+  const following = user?.followingData || [];
 
   const dataArray = [
     {
@@ -50,6 +51,57 @@ const FollowersFollowing = ({
     navigate(`/profile/${userId}`);
   };
 
+  const handleFollowToggle = async (person) => {
+    const personId = person?._id || person?.id;
+
+    if (!personId) return;
+
+    try {
+      setLoadingUserId(personId);
+
+      const token = await getToken();
+
+      const { data } = await api.post(
+        "/users/follow/",
+        {
+          id: personId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!data.success) {
+        toast.error(data.message || "Unable to update follow");
+        return;
+      }
+
+      if (activeTab === "Following" && !data.following) {
+        person.following = false;
+      } else {
+        person.following = data.following;
+      }
+
+    
+      setActiveTab((current) => current);
+
+      toast.success(
+        data.following
+          ? "User followed successfully"
+          : "User unfollowed successfully"
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to update follow status"
+      );
+    } finally {
+      setLoadingUserId(null);
+    }
+  };
+
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
 
@@ -68,7 +120,7 @@ const FollowersFollowing = ({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-gray-100 hover:text-slate-900 active:scale-95 cursor-pointer"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 transition hover:bg-gray-100 hover:text-slate-900 active:scale-95"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
@@ -86,7 +138,7 @@ const FollowersFollowing = ({
                 key={tab.label}
                 type="button"
                 onClick={() => setActiveTab(tab.label)}
-                className={`relative flex flex-1 items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                className={`relative flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 ${
                   activeTab === tab.label
                     ? "text-[#1877F2]"
                     : "text-slate-500 hover:text-slate-800"
@@ -135,6 +187,21 @@ const FollowersFollowing = ({
             {activeData.value.map((person) => {
               const personId = person?._id || person?.id;
 
+              const isLoading = loadingUserId === personId;
+
+              /*
+               * For Followers tab:
+               * person.following tells whether current user
+               * is already following this person.
+               *
+               * For Following tab:
+               * everyone in this list is already followed.
+               */
+              const isFollowing =
+                activeTab === "Following"
+                  ? true
+                  : person?.following === true;
+
               return (
                 <div
                   key={personId}
@@ -174,13 +241,27 @@ const FollowersFollowing = ({
                     {activeTab === "Followers" && (
                       <button
                         type="button"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex h-9 items-center gap-1.5 rounded-lg bg-[#1877F2] px-3 text-xs font-semibold text-white transition hover:bg-[#166fe5] active:scale-95 cursor-pointer"
+                        disabled={isLoading}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollowToggle(person);
+                        }}
+                        className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
+                          isFollowing
+                            ? "bg-gray-100 text-slate-700 hover:bg-gray-200"
+                            : "bg-[#1877F2] text-white hover:bg-[#166fe5]"
+                        }`}
                       >
-                        <UserPlus className="h-4 w-4" />
+                        {isFollowing ? (
+                          <UserCheck className="h-4 w-4" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
 
                         <span className="hidden sm:inline">
-                          Follow Back
+                          {isFollowing
+                            ? "Following"
+                            : "Follow Back"}
                         </span>
                       </button>
                     )}
@@ -188,13 +269,17 @@ const FollowersFollowing = ({
                     {activeTab === "Following" && (
                       <button
                         type="button"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex h-9 items-center gap-1.5 rounded-lg bg-[#1877F2] px-3 text-xs font-semibold text-white transition hover:bg-[#166fe5] active:scale-95 cursor-pointer"
+                        disabled={isLoading}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollowToggle(person);
+                        }}
+                        className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-gray-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-gray-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <UserCheck className="h-4 w-4" />
+                        <UserMinus className="h-4 w-4" />
 
                         <span className="hidden sm:inline">
-                          Following
+                          {isLoading ? "..." : "Unfollow"}
                         </span>
                       </button>
                     )}
@@ -225,4 +310,3 @@ const FollowersFollowing = ({
 };
 
 export default FollowersFollowing;
-

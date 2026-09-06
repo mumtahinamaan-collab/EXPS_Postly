@@ -20,6 +20,7 @@ const Profile = () => {
   const { getToken } = useAuth();
 
   const [connectionTab, setConnectionTab] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -29,46 +30,45 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const fetchUser = async (profileId) => {
-    const token = await  getToken()
-    try{
-        const { data } = await api.post('/users/profiles/',{profileId}, {
+    const token = await getToken();
+    try {
+      const { data } = await api.post(
+        "/users/profiles/",
+        { profileId },
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
-        if (data.success) {
-          setUser(data.profile);
-          setPosts(data.posts);
-        }else{
-          toast.error(data.message)
-        }   
-    }
-    catch (error) {
+        },
+      );
+      if (data.success) {
+        setUser(data.profile);
+        setPosts(data.posts || []);
+        setIsFollowing(data.is_following || false);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
       toast.error(error.message);
     }
- 
   };
 
   useEffect(() => {
     if (profileId) {
       fetchUser(profileId);
-    }
-    else{
+    } else {
       fetchUser(currentUser?.id);
-
-
     }
   }, [profileId, currentUser]);
 
   const userId = user?._id || user?.id || profileId;
+  const isOwnProfile = !profileId || profileId === currentUser?.id;
 
   return user ? (
     <div className="relative h-full overflow-y-scroll bg-gray-50 p-3 sm:p-6">
       <div className="mx-auto max-w-3xl">
-
         {/* Profile Card */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-
           {/* Cover Photo */}
           <div className="h-44 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 md:h-56">
             {user.cover_photo && (
@@ -87,6 +87,7 @@ const Profile = () => {
             profileId={profileId}
             setShowEdit={setShowEdit}
             onConnectionClick={(tab) => setConnectionTab(tab)}
+            isOwnProfile={isOwnProfile}
           />
         </div>
 
@@ -114,10 +115,9 @@ const Profile = () => {
           {/* ================= POSTS ================= */}
           {activeTab === "posts" && (
             <div className="mt-4 flex w-full flex-col items-center gap-4 sm:mt-6 sm:gap-5">
-
               {/* Create Post - Own Profile */}
               {!profileId && (
-                <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm sm:p-4">
+                <div className="mt-4 w-full flex gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:mt-6 sm:p-6">
                   <img
                     src={user?.profile_picture || "/logo.png"}
                     alt=""
@@ -147,16 +147,17 @@ const Profile = () => {
                 posts.map((post) => (
                   <div
                     key={post?._id || post?.id}
-                    className="w-full max-w-xl"
+                    className="w-full flex items-center justify-center"
                   >
-                    <PostCard post={post} />
+                    <PostCard
+                      className="mt-2 w-full rounded-xl border border-gray-200 bg-white  sm:mt-6 sm:p-6"
+                      post={post}
+                    />
                   </div>
                 ))
               ) : (
                 <div className="w-full max-w-xl rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
-                  <p className="text-sm text-gray-500">
-                    No posts yet
-                  </p>
+                  <p className="text-sm text-gray-500">No posts yet</p>
                 </div>
               )}
             </div>
@@ -195,26 +196,19 @@ const Profile = () => {
           {/* ================= LIKES ================= */}
           {activeTab === "liked" && (
             <div className="mt-6 w-full rounded-xl border border-gray-200 bg-white p-8 text-center">
-              <p className="text-sm text-gray-500">
-                No likes yet
-              </p>
+              <p className="text-sm text-gray-500">No likes yet</p>
             </div>
           )}
 
           {/* ================= ABOUT ================= */}
           {activeTab === "about" && (
             <div className="mt-4 w-full rounded-xl border border-gray-200 bg-white p-5 sm:mt-6 sm:p-6">
-              <h2 className="text-base font-semibold text-gray-900">
-                About
-              </h2>
+              <h2 className="text-base font-semibold text-gray-900">About</h2>
 
               <div className="mt-5 space-y-5">
-
                 {/* Bio */}
                 <div>
-                  <p className="text-xs font-medium text-gray-400">
-                    Bio
-                  </p>
+                  <p className="text-xs font-medium text-gray-400">Bio</p>
 
                   <p className="mt-1 text-sm leading-6 text-gray-700">
                     {user?.bio || "No bio added yet."}
@@ -237,9 +231,7 @@ const Profile = () => {
 
                 {/* Location */}
                 <div>
-                  <p className="text-xs font-medium text-gray-400">
-                    Location
-                  </p>
+                  <p className="text-xs font-medium text-gray-400">Location</p>
 
                   <p className="mt-1 text-sm text-gray-700">
                     {user?.location || "No location added"}
@@ -248,17 +240,14 @@ const Profile = () => {
 
                 {/* Joined */}
                 <div>
-                  <p className="text-xs font-medium text-gray-400">
-                    Joined
-                  </p>
+                  <p className="text-xs font-medium text-gray-400">Joined</p>
 
                   <p className="mt-1 text-sm text-gray-700">
-                    {user?.createdAt
-                      ? moment(user.createdAt).format("MMMM YYYY")
+                    {user?.created_at
+                      ? moment(user.created_at).format("MMMM YYYY")
                       : "Recently"}
                   </p>
                 </div>
-
               </div>
             </div>
           )}
@@ -271,10 +260,7 @@ const Profile = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm"
           onClick={() => setConnectionTab(null)}
         >
-          <div
-            className="w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <FollowersFollowing
               user={user}
               initialTab={connectionTab}
@@ -285,9 +271,7 @@ const Profile = () => {
       )}
 
       {/* Edit Profile Modal */}
-      {showedit && (
-        <ProfileModal setShowEdit={setShowEdit} />
-      )}
+      {showedit && <ProfileModal setShowEdit={setShowEdit} />}
     </div>
   ) : (
     <Loading />

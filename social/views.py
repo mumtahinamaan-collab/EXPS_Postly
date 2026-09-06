@@ -5,9 +5,9 @@ from rest_framework.decorators import (
     api_view,
     authentication_classes,
     permission_classes,
-    parser_classes,
-)
-from rest_framework.parsers import MultiPartParser, FormParser
+)  
+from rest_framework.parsers import MultiPartParser, FormParser  parser_classes,
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -393,14 +393,14 @@ def discover_users(request):
             id=request.user.id
         )[:20]
     )
-
+    users_data = []
+    for user in users:
+        users_data=serialize_user(user)
+        user_data["is_following"] = request.user.following.filter(id=user.id).exists()
+        users_data.append(user_data)
     return Response({
         "success": True,
-
-        "users": [
-            serialize_user(user)
-            for user in users
-        ],
+        "users": users_data,
     })
 
 

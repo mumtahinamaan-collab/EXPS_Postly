@@ -8,9 +8,9 @@ import {
   Share2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import React from "react";
-import { dummyUserData } from "../assets/dummyData";
+import React,{useState} from "react";
 import toast from "react-hot-toast";
+import { useAuth } from "@clerk/react";
 
 const UserProfileInfo = ({
   user,
@@ -18,24 +18,54 @@ const UserProfileInfo = ({
   profileId,
   setShowEdit,
   onConnectionClick,
+  onFollowUpdate,
+  isOwnProfile,
 }) => {
   const navigate = useNavigate();
-
-  const currentUser = dummyUserData;
-
-  const following = currentUser?.following || [];
-  const followers = currentUser?.followers || [];
-
   const userId = user?._id || user?.id;
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollower, setIsFollower] = useState(false);
+  const { getToken } = useAuth();
+  const handleFollow = async (e) => {
+  e.stopPropagation();
 
-  const isFollowing = following.includes(userId);
-  const isFollower = followers.includes(userId);
 
-  const handleFollow = (e) => {
-    e.stopPropagation();
+  if (!userId) return;
 
-    // Follow API will be connected later.
-  };
+  try {
+    const token = await getToken();
+
+    const { data } = await api.post(
+      "/users/follow/",
+      {
+        id: userId,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!data.success) {
+      toast.error(data.message || "Unable to update follow");
+      return;
+    }
+
+    setIsFollowing(data.following);
+
+    toast.success(
+      data.following
+        ? "Following"
+        : "Unfollowed"
+    );
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message ||
+      "Unable to update follow status"
+    );
+  }
+};
 
   const handleMessage = (e) => {
     e.stopPropagation();
@@ -76,7 +106,7 @@ const UserProfileInfo = ({
   };
 
   const renderAction = () => {
-    if (!profileId) {
+    if (isOwnProfile) {
       return (
         <div className="flex w-full gap-2 sm:w-auto">
           <button
@@ -250,7 +280,7 @@ const UserProfileInfo = ({
               className="text-left transition hover:text-[#1877F2] cursor-pointer"
             >
               <span className="text-base font-bold text-gray-900 sm:text-lg">
-                {user?.followers?.length || 0}
+                {user?.followers_count|| 0}
               </span>
 
               <span className="ml-1 text-xs text-gray-500 sm:text-sm">
@@ -264,7 +294,7 @@ const UserProfileInfo = ({
               className="text-left transition hover:text-[#1877F2] cursor-pointer"
             >
               <span className="text-base font-bold text-gray-900 sm:text-lg">
-                {user?.following?.length || 0}
+                {user?.following_count || 0}
               </span>
 
               <span className="ml-1 text-xs text-gray-500 sm:text-sm">

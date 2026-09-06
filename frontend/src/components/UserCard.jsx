@@ -1,31 +1,81 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   UserPlus,
   UserCheck,
   MapPin,
 } from "lucide-react";
 
-import { dummyUserData } from "../assets/dummyData";
+import { useAuth } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import toast from "react-hot-toast";
+
+import api from "../api/axios";
+
 const UserCard = ({ user }) => {
-  const currentUser = useSelector((state) => state.user.value);
-
   const navigate = useNavigate();
+  const { getToken } = useAuth();
 
-  const [isFollowing, setIsFollowing] = useState(
-    currentUser?.following?.includes(user?._id) || false
-  );
+  const userId = user?.id || user?._id;
 
-  const handleFollow = (e) => {
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Follow status comes from Discover API
+  useEffect(() => {
+    if (!userId) return;
+
+    setIsFollowing(Boolean(user?.is_following));
+  }, [user, userId]);
+
+  const handleFollow = async (e) => {
     e.stopPropagation();
-    setIsFollowing((prev) => !prev);
+
+    if (!userId || loading) return;
+
+    try {
+      setLoading(true);
+
+      const token = await getToken();
+
+      const { data } = await api.post(
+        "/users/follow/",
+        {
+          id: userId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (data.success) {
+        setIsFollowing(data.following);
+
+        toast.success(
+          data.following
+            ? "User followed successfully"
+            : "User unfollowed successfully"
+        );
+      } else {
+        toast.error(
+          data.message || "Unable to update follow status"
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to update follow status"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div
-      onClick={() => navigate(`/profile/${user._id}`)}
+      onClick={() => navigate(`/profile/${userId}`)}
       className="
         group
         w-full
@@ -107,7 +157,8 @@ const UserCard = ({ user }) => {
           "
         >
           <span className="font-semibold text-slate-700">
-            {user?.Followers?.length ||
+            {user?.followers_count ||
+              user?.Followers?.length ||
               user?.followers?.length ||
               0}
           </span>{" "}
@@ -123,6 +174,7 @@ const UserCard = ({ user }) => {
         <button
           type="button"
           onClick={handleFollow}
+          disabled={loading}
           className={`
             flex
             h-8
@@ -137,6 +189,8 @@ const UserCard = ({ user }) => {
             transition
             active:scale-95
             cursor-pointer
+            disabled:cursor-not-allowed
+            disabled:opacity-60
             ${
               isFollowing
                 ? "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
@@ -147,12 +201,12 @@ const UserCard = ({ user }) => {
           {isFollowing ? (
             <>
               <UserCheck className="h-3.5 w-3.5" />
-              Following
+              {loading ? "..." : "Following"}
             </>
           ) : (
             <>
               <UserPlus className="h-3.5 w-3.5" />
-              Follow
+              {loading ? "..." : "Follow"}
             </>
           )}
         </button>

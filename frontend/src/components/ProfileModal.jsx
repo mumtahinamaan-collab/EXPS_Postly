@@ -11,6 +11,8 @@ const ProfileModal = ({ setShowEdit }) => {
   const dispatch = useDispatch();
   const { getToken } = useAuth();
 
+  const MAX_IMAGE_SIZE = 50 * 1024; // 50 KB
+
   const [editForm, setEditForm] = useState({
     username: user.username,
     bio: user.bio,
@@ -22,6 +24,24 @@ const ProfileModal = ({ setShowEdit }) => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+
+    // Profile picture size check
+    if (
+      editForm.profile_picture &&
+      editForm.profile_picture.size > MAX_IMAGE_SIZE
+    ) {
+      toast.error("Profile picture must be 50 KB or smaller.");
+      return;
+    }
+
+    // Cover photo size check
+    if (
+      editForm.cover_photo &&
+      editForm.cover_photo.size > MAX_IMAGE_SIZE
+    ) {
+      toast.error("Cover photo must be 50 KB or smaller.");
+      return;
+    }
 
     const userData = new FormData();
 
@@ -47,16 +67,20 @@ const ProfileModal = ({ setShowEdit }) => {
       userData.append("cover_photo", cover_photo);
     }
 
-    const token = await getToken();
+    try {
+      const token = await getToken();
 
-    await dispatch(
-      updateUser({
-        userData,
-        token,
-      })
-    ).unwrap();
+      await dispatch(
+        updateUser({
+          userData,
+          token,
+        })
+      ).unwrap();
 
-    setShowEdit(false);
+      setShowEdit(false);
+    } catch (error) {
+      // updateUser thunk already handles the error toast
+    }
   };
 
   return (
@@ -70,12 +94,7 @@ const ProfileModal = ({ setShowEdit }) => {
 
           <form
             className="space-y-5"
-            onSubmit={(e) =>
-              toast.promise(handleSaveProfile(e), {
-                loading: "Saving changes..."
-
-              })
-            }
+            onSubmit={handleSaveProfile}
           >
 
             {/* Profile Picture */}
@@ -89,19 +108,33 @@ const ProfileModal = ({ setShowEdit }) => {
                 type="file"
                 accept="image/*"
                 id="profile_picture"
-                onChange={(e) =>
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (!file) return;
+
+                  if (file.size > MAX_IMAGE_SIZE) {
+                    toast.error(
+                      "Profile picture must be 50 KB or smaller."
+                    );
+                    e.target.value = "";
+                    return;
+                  }
+
                   setEditForm({
                     ...editForm,
-                    profile_picture: e.target.files?.[0] || null,
-                  })
-                }
+                    profile_picture: file,
+                  });
+                }}
               />
 
               <div className="group/profile relative w-24 h-24">
                 <img
                   src={
                     editForm.profile_picture
-                      ? URL.createObjectURL(editForm.profile_picture)
+                      ? URL.createObjectURL(
+                          editForm.profile_picture
+                        )
                       : user.profile_picture
                   }
                   alt=""
@@ -117,6 +150,10 @@ const ProfileModal = ({ setShowEdit }) => {
                   </label>
                 </div>
               </div>
+
+              <p className="text-xs text-gray-400 mt-2">
+                Maximum size: 50 KB
+              </p>
             </div>
 
             {/* Cover Photo */}
@@ -130,12 +167,24 @@ const ProfileModal = ({ setShowEdit }) => {
                 type="file"
                 accept="image/*"
                 id="cover_photo"
-                onChange={(e) =>
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (!file) return;
+
+                  if (file.size > MAX_IMAGE_SIZE) {
+                    toast.error(
+                      "Cover photo must be 50 KB or smaller."
+                    );
+                    e.target.value = "";
+                    return;
+                  }
+
                   setEditForm({
                     ...editForm,
-                    cover_photo: e.target.files?.[0] || null,
-                  })
-                }
+                    cover_photo: file,
+                  });
+                }}
               />
 
               <label
@@ -145,7 +194,9 @@ const ProfileModal = ({ setShowEdit }) => {
                 <img
                   src={
                     editForm.cover_photo
-                      ? URL.createObjectURL(editForm.cover_photo)
+                      ? URL.createObjectURL(
+                          editForm.cover_photo
+                        )
                       : user.cover_photo
                   }
                   alt=""
@@ -155,12 +206,17 @@ const ProfileModal = ({ setShowEdit }) => {
                 <div className="absolute hidden group-hover/cover:flex inset-0 bg-black/30 rounded-lg items-center justify-center">
                   <div className="bg-white/90 px-3 py-1.5 rounded-full flex items-center gap-2">
                     <Pencil className="w-4 h-4" />
+
                     <span className="text-sm font-medium">
                       Change Cover
                     </span>
                   </div>
                 </div>
               </label>
+
+              <p className="text-xs text-gray-400 mt-2">
+                Maximum size: 50 KB
+              </p>
             </div>
 
             {/* Full Name */}
@@ -258,8 +314,8 @@ const ProfileModal = ({ setShowEdit }) => {
               </button>
 
             </div>
-          </form>
 
+          </form>
         </div>
       </div>
     </div>
@@ -267,5 +323,4 @@ const ProfileModal = ({ setShowEdit }) => {
 };
 
 export default ProfileModal;
-
 
