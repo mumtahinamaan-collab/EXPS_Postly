@@ -321,10 +321,6 @@ def get_profile(request):
     posts_count = posts.count()
 
     # ----------------------------------------------
-    # TOTAL LIKES
-    # ----------------------------------------------
-
-        # ----------------------------------------------
     # LIKED POSTS
     # ----------------------------------------------
 
@@ -367,7 +363,12 @@ def get_profile(request):
 
         "posts_count": posts_count,
 
-        "total_likes": total_likes,
+        "liked_posts": [
+            serialize_post(
+                post,
+                request.user)
+            for post in liked_posts
+],
 
         "posts": [
             serialize_post(
