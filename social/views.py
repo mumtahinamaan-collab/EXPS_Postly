@@ -1,4 +1,3 @@
-
 from django.db.models import Count, Q
 
 from rest_framework.decorators import (
@@ -6,7 +5,7 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
     parser_classes,
-)  
+)
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -366,9 +365,10 @@ def get_profile(request):
         "liked_posts": [
             serialize_post(
                 post,
-                request.user)
+                request.user
+            )
             for post in liked_posts
-],
+        ],
 
         "posts": [
             serialize_post(
@@ -413,11 +413,23 @@ def discover_users(request):
             id=request.user.id
         )[:20]
     )
+
     users_data = []
+
     for user in users:
-        user_data=serialize_user(user)
-        user_data["is_following"] = request.user.following.filter(id=user.id).exists()
-        users_data.append(user_data)
+
+        user_data = serialize_user(user)
+
+        user_data["is_following"] = (
+            request.user.following
+            .filter(id=user.id)
+            .exists()
+        )
+
+        users_data.append(
+            user_data
+        )
+
     return Response({
         "success": True,
         "users": users_data,
@@ -918,7 +930,60 @@ def toggle_like(request, post_id):
 
 
 # ==================================================
-# 10. POST DETAILS
+# 10. DELETE POST
+# DELETE /api/posts/<post_id>/delete/
+# ==================================================
+
+@api_view(["DELETE"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_post(request, post_id):
+
+    # ----------------------------------------------
+    # GET POST
+    # ----------------------------------------------
+
+    try:
+        post = Post.objects.get(
+            id=post_id
+        )
+
+    except Post.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Post not found.",
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # ----------------------------------------------
+    # ONLY POST OWNER CAN DELETE
+    # ----------------------------------------------
+
+    if str(post.user.id) != str(request.user.id):
+        return Response(
+            {
+                "success": False,
+                "message": "You can only delete your own post.",
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # ----------------------------------------------
+    # DELETE POST
+    # ----------------------------------------------
+
+    post.delete()
+
+    return Response({
+        "success": True,
+        "message": "Post deleted successfully.",
+    })
+
+
+# ==================================================
+# 11. POST DETAILS
 # GET /api/posts/<post_id>/details/
 # ==================================================
 
@@ -1004,11 +1069,12 @@ def post_details(request, post_id):
 
 
 # ==================================================
-# 11. ADD / DELETE COMMENT
+# 12. GET / ADD / DELETE COMMENTS
+# GET  /api/posts/<post_id>/comments/
 # POST /api/posts/<post_id>/comments/
 # ==================================================
 
-@api_view(["POST"])
+@api_view(["GET", "POST"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
 def post_comments(request, post_id):
@@ -1033,14 +1099,42 @@ def post_comments(request, post_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    # ==================================================
+    # GET COMMENTS
+    # ==================================================
+
+    if request.method == "GET":
+
+        comments = (
+            Comment.objects
+            .filter(post=post)
+            .select_related("user")
+            .order_by("created_at")
+        )
+
+        return Response({
+            "success": True,
+
+            "comments": [
+                serialize_comment(comment)
+                for comment in comments
+            ],
+
+            "comments_count": comments.count(),
+        })
+
+    # ==================================================
+    # POST
+    # ==================================================
+
     action = request.data.get(
         "action",
         "add"
     )
 
-    # ----------------------------------------------
+    # ==================================================
     # DELETE COMMENT
-    # ----------------------------------------------
+    # ==================================================
 
     if action == "delete":
 
@@ -1093,11 +1187,16 @@ def post_comments(request, post_id):
         return Response({
             "success": True,
             "message": "Comment deleted successfully.",
+            "comments_count": (
+                Comment.objects
+                .filter(post=post)
+                .count()
+            ),
         })
 
-    # ----------------------------------------------
+    # ==================================================
     # ADD COMMENT
-    # ----------------------------------------------
+    # ==================================================
 
     content = request.data.get(
         "content",
@@ -1123,8 +1222,15 @@ def post_comments(request, post_id):
         {
             "success": True,
             "message": "Comment added successfully.",
+
             "comment": serialize_comment(
                 comment
+            ),
+
+            "comments_count": (
+                Comment.objects
+                .filter(post=post)
+                .count()
             ),
         },
         status=status.HTTP_201_CREATED,
@@ -1132,7 +1238,7 @@ def post_comments(request, post_id):
 
 
 # ==================================================
-# 12. CHAT IMAGE UPLOAD
+# 13. CHAT IMAGE UPLOAD
 # POST /api/chat/upload-image/
 # ==================================================
 
@@ -1183,7 +1289,7 @@ def upload_chat_image(request):
 
 
 # ==================================================
-# 13. GET CHAT MESSAGES
+# 14. GET CHAT MESSAGES
 # POST /api/chat/messages/
 # ==================================================
 
@@ -1301,6 +1407,56 @@ def get_chat_messages(request):
         ],
     })
 
+# ==================================================
+# 15. DELETE CHAT MESSAGE
+# DELETE /api/chat/messages/<message_id>/delete/
+# ==================================================
 
+@api_view(["DELETE"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_chat_message(request, message_id):
 
+    user = request.user
 
+    # ----------------------------------------------
+    # GET MESSAGE
+    # ----------------------------------------------
+
+    try:
+        message = Message.objects.get(
+            id=message_id
+        )
+
+    except Message.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Message not found.",
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # ----------------------------------------------
+    # ONLY MESSAGE OWNER CAN DELETE
+    # ----------------------------------------------
+
+    if str(message.from_user.id) != str(user.id):
+        return Response(
+            {
+                "success": False,
+                "message": "You can only delete your own message.",
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # ----------------------------------------------
+    # DELETE MESSAGE
+    # ----------------------------------------------
+
+    message.delete()
+
+    return Response({
+        "success": True,
+        "message": "Message deleted successfully.",
+    })

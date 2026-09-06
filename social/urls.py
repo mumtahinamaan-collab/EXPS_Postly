@@ -14,6 +14,9 @@ from .views import (
     post_comments,
     upload_chat_image,
     get_chat_messages,
+    delete_post,
+    delete_chat_message,
+
 )
 
 
@@ -94,6 +97,11 @@ urlpatterns = [
         post_comments,
         name="post-comments"
     ),
+    path(
+        "posts/<int:post_id>/delete/",
+        delete_post,
+        name="delete_post",
+),
 
 
     # ==============================
@@ -111,4 +119,9 @@ urlpatterns = [
         get_chat_messages,
         name="get-chat-messages"
     ),
+    path(
+        "chat/messages/<int:message_id>/delete/",
+        delete_chat_message,
+        name="delete_chat_message",
+),
 ]
