@@ -79,6 +79,7 @@ class PostSerializer(serializers.ModelSerializer):
             "is_liked",
             "created_at",
             "updated_at",
+            "background_color",
         ]
 
         read_only_fields = [

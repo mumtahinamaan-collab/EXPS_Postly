@@ -60,6 +60,7 @@ const CreatePost = () => {
       const formData = new FormData();
 
       formData.append("content", content);
+      formData.append("background_color", background);
 
       if (content.trim() && images.length > 0) {
         formData.append("post_type", "text_with_image");
@@ -67,6 +68,7 @@ const CreatePost = () => {
         formData.append("post_type", "image");
       } else {
         formData.append("post_type", "text");
+        
       }
 
       images.forEach((image) => {

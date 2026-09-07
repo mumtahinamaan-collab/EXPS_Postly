@@ -83,6 +83,11 @@ class Post(models.Model):
         related_name='liked_posts',
         blank=True
     )
+    background_color = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True
+)
 
     created_at = models.DateTimeField(
         auto_now_add=True

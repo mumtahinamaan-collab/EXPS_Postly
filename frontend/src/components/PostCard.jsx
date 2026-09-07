@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   BadgeCheck,
@@ -18,28 +17,19 @@ const PostCard = ({ post }) => {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
 
-  const [likesCount, setLikesCount] = useState(
-    post.likes_count || 0
-  );
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
 
-  const [isLiked, setIsLiked] = useState(
-    post.is_liked || false
-  );
+  const [isLiked, setIsLiked] = useState(post.is_liked || false);
 
-  const [commentsCount, setCommentsCount] = useState(
-    post.comments_count || 0
-  );
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
 
-  const [showComments, setShowComments] =
-    useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const [comments, setComments] = useState([]);
 
-  const [showPostMenu, setShowPostMenu] =
-    useState(false);
+  const [showPostMenu, setShowPostMenu] = useState(false);
 
-  const [deletingPost, setDeletingPost] =
-    useState(false);
+  const [deletingPost, setDeletingPost] = useState(false);
 
   // ==================================================
   // POST OWNER
@@ -55,11 +45,9 @@ const PostCard = ({ post }) => {
   // HASHTAGS
   // ==================================================
 
-  const postWithHashtags = (
-    post.content || ""
-  ).replace(
+  const postWithHashtags = (post.content || "").replace(
     /(#\w+)/g,
-    '<span class="text-[#1877F2]">$1</span>'
+    '<span class="text-[#1877F2]">$1</span>',
   );
 
   // ==================================================
@@ -77,22 +65,17 @@ const PostCard = ({ post }) => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (data.success) {
         setIsLiked(data.liked);
         setLikesCount(data.likes_count);
       } else {
-        toast.error(
-          data.message || "Unable to like post"
-        );
+        toast.error(data.message || "Unable to like post");
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to like post"
-      );
+      toast.error(error.response?.data?.message || "Unable to like post");
     }
   };
 
@@ -107,15 +90,11 @@ const PostCard = ({ post }) => {
       if (navigator.share) {
         await navigator.share({
           title: "Postly",
-          text:
-            post.content ||
-            "Check out this post",
+          text: post.content || "Check out this post",
           url: postUrl,
         });
       } else {
-        await navigator.clipboard.writeText(
-          postUrl
-        );
+        await navigator.clipboard.writeText(postUrl);
 
         toast.success("Post link copied!");
       }
@@ -134,34 +113,21 @@ const PostCard = ({ post }) => {
     try {
       const token = await getToken();
 
-      const { data } = await api.get(
-        `/posts/${post.id}/comments/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const { data } = await api.get(`/posts/${post.id}/comments/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (data.success) {
         setComments(data.comments || []);
 
-        setCommentsCount(
-          data.comments_count ??
-            data.comments?.length ??
-            0
-        );
+        setCommentsCount(data.comments_count ?? data.comments?.length ?? 0);
       } else {
-        toast.error(
-          data.message ||
-            "Unable to load comments"
-        );
+        toast.error(data.message || "Unable to load comments");
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to load comments"
-      );
+      toast.error(error.response?.data?.message || "Unable to load comments");
     }
   };
 
@@ -189,32 +155,21 @@ const PostCard = ({ post }) => {
 
       const token = await getToken();
 
-      const { data } = await api.delete(
-        `/posts/${post.id}/delete/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const { data } = await api.delete(`/posts/${post.id}/delete/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (data.success) {
-        toast.success(
-          "Post deleted successfully."
-        );
+        toast.success("Post deleted successfully.");
 
         window.location.reload();
       } else {
-        toast.error(
-          data.message ||
-            "Unable to delete post"
-        );
+        toast.error(data.message || "Unable to delete post");
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to delete post"
-      );
+      toast.error(error.response?.data?.message || "Unable to delete post");
     } finally {
       setDeletingPost(false);
       setShowPostMenu(false);
@@ -241,19 +196,14 @@ const PostCard = ({ post }) => {
           USER INFO + POST MENU
       ================================================== */}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between ">
         {/* USER */}
 
         <div className="inline-flex items-center gap-3 cursor-pointer">
           <div className="rounded-full">
             <img
-              src={
-                post.user?.profile_picture ||
-                "/logo.png"
-              }
-              alt={
-                post.user?.username || ""
-              }
+              src={post.user?.profile_picture || "/logo.png"}
+              alt={post.user?.username || ""}
               className="
                 w-10
                 h-10
@@ -275,10 +225,7 @@ const PostCard = ({ post }) => {
             </div>
 
             <div className="text-sm text-slate-400">
-              @{post.user?.username} •{" "}
-              {moment(
-                post.created_at
-              ).fromNow()}
+              @{post.user?.username} • {moment(post.created_at).fromNow()}
             </div>
           </div>
         </div>
@@ -291,11 +238,7 @@ const PostCard = ({ post }) => {
           <div className="relative">
             <button
               type="button"
-              onClick={() =>
-                setShowPostMenu(
-                  (prev) => !prev
-                )
-              }
+              onClick={() => setShowPostMenu((prev) => !prev)}
               className="
                 p-2
                 rounded-full
@@ -349,11 +292,7 @@ const PostCard = ({ post }) => {
                 >
                   <Trash2 className="w-4 h-4" />
 
-                  <span>
-                    {deletingPost
-                      ? "Deleting..."
-                      : "Delete post"}
-                  </span>
+                  <span>{deletingPost ? "Deleting..." : "Delete post"}</span>
                 </button>
               </div>
             )}
@@ -373,6 +312,9 @@ const PostCard = ({ post }) => {
             whitespace-pre-line
             leading-6
           "
+          style={{
+            backgroundColor: post.background_color,
+          }}
           dangerouslySetInnerHTML={{
             __html: postWithHashtags,
           }}
@@ -385,26 +327,20 @@ const PostCard = ({ post }) => {
 
       {post.image_urls?.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          {post.image_urls.map(
-            (img, index) => (
-              <img
-                key={`${post.id}-${index}`}
-                src={img}
-                alt=""
-                className={`
+          {post.image_urls.map((img, index) => (
+            <img
+              key={`${post.id}-${index}`}
+              src={img}
+              alt=""
+              className={`
                   w-full
                   h-48
                   object-cover
                   rounded-xl
-                  ${
-                    post.image_urls.length === 1
-                      ? "col-span-2 h-auto"
-                      : ""
-                  }
+                  ${post.image_urls.length === 1 ? "col-span-2 h-auto" : ""}
                 `}
-              />
-            )
-          )}
+            />
+          ))}
         </div>
       )}
 
@@ -468,11 +404,7 @@ const PostCard = ({ post }) => {
             cursor-pointer
             bg-transparent
             border-0
-            ${
-              showComments
-                ? "text-[#C900A8]"
-                : "hover:text-[#C900A8]"
-            }
+            ${showComments ? "text-[#C900A8]" : "hover:text-[#C900A8]"}
           `}
         >
           <MessageCircle className="w-4 h-4" />
@@ -513,9 +445,7 @@ const PostCard = ({ post }) => {
           setComments={setComments}
           commentsCount={commentsCount}
           setCommentsCount={setCommentsCount}
-          onClose={() =>
-            setShowComments(false)
-          }
+          onClose={() => setShowComments(false)}
         />
       )}
     </div>
@@ -523,5 +453,3 @@ const PostCard = ({ post }) => {
 };
 
 export default PostCard;
-
-

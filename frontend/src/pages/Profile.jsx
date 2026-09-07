@@ -34,7 +34,7 @@ const Profile = () => {
     const token = await getToken();
     try {
       const { data } = await api.post(
-        "/users/profiles/",
+        "/user/profile/",
         { profileId },
         {
           headers: {

@@ -808,6 +808,7 @@ def user_social_data(request, user_id):
 def add_post(request):
 
     user = request.user
+    background_color = request.data.get("background_color")
 
     content = request.data.get(
         "content",
@@ -835,6 +836,7 @@ def add_post(request):
         image_urls.append(
             upload.url
         )
+
 
     # ----------------------------------------------
     # AUTO POST TYPE
@@ -875,6 +877,7 @@ def add_post(request):
         content=content,
         image_urls=image_urls,
         post_type=post_type,
+        background_color=background_color,
     )
 
     return Response(

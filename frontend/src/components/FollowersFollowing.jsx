@@ -1,8 +1,8 @@
+
 import React, { useEffect, useState } from "react";
 import {
   UserPlus,
   UserCheck,
-  UserMinus,
   Users,
   X,
 } from "lucide-react";
@@ -20,28 +20,77 @@ const FollowersFollowing = ({
   onFollowUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+
+  const [loading, setLoading] = useState(true);
   const [loadingUserId, setLoadingUserId] = useState(null);
-
-  // Local copies so follow/unfollow updates immediately
-  const [followers, setFollowers] = useState(
-    user?.followersData || []
-  );
-
-  const [following, setFollowing] = useState(
-    user?.followingData || []
-  );
 
   const navigate = useNavigate();
   const { getToken } = useAuth();
 
   /*
-   * Jab parent se user data change ho
-   * to local lists bhi update ho jayein.
+   * Get followers + following from:
+   *
+   * GET /api/user/social/<user_id>/
+   */
+  const fetchSocialData = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+
+      const token = await getToken();
+
+      const response = await api.get(
+        `/user/social/${user.id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = response.data;
+
+      if (!data?.success) {
+        toast.error(
+          data?.message || "Unable to load connections"
+        );
+        return;
+      }
+
+      /*
+       * Backend response:
+       *
+       * {
+       *   success: true,
+       *   followers: [...],
+       *   following: [...],
+       *   followers_count: ...,
+       *   following_count: ...
+       * }
+       */
+
+      setFollowers(data.followers || []);
+      setFollowing(data.following || []);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to load connections"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * Load social data whenever selected profile changes.
    */
   useEffect(() => {
-    setFollowers(user?.followersData || []);
-    setFollowing(user?.followingData || []);
-  }, [user?.followersData, user?.followingData]);
+    fetchSocialData();
+  }, [user?.id]);
 
   const dataArray = [
     {
@@ -60,12 +109,17 @@ const FollowersFollowing = ({
     (item) => item.label === activeTab
   );
 
+  /*
+   * Open selected user's profile.
+   */
   const handleUserClick = (userId) => {
     if (!userId) return;
 
     onClose?.();
+
     navigate(`/profile/${userId}`);
   };
+
 
   const handleFollowToggle = async (person) => {
     const personId = person?.id || person?._id;
@@ -77,8 +131,8 @@ const FollowersFollowing = ({
 
       const token = await getToken();
 
-      const { data } = await api.post(
-        "/users/follow/",
+      const response = await api.post(
+        "/user/follow/",
         {
           id: personId,
         },
@@ -89,19 +143,20 @@ const FollowersFollowing = ({
         }
       );
 
-      if (!data.success) {
+      const data = response.data;
+
+      if (!data?.success) {
         toast.error(
-          data.message || "Unable to update follow status"
+          data?.message ||
+            "Unable to update follow status"
         );
         return;
       }
 
-      /*
-       * FOLLOW
-       */
+
+
       if (data.following) {
-        // Followers tab:
-        // update that person's following status
+        
         setFollowers((prev) =>
           prev.map((item) =>
             String(item.id) === String(personId)
@@ -113,15 +168,25 @@ const FollowersFollowing = ({
           )
         );
 
-        // Following list mein user add karo
+        /*
+         * Add user to Following list.
+         */
         setFollowing((prev) => {
-          const alreadyExists = prev.some(
+          const exists = prev.some(
             (item) =>
-              String(item.id) === String(personId)
+              String(item.id) ===
+              String(personId)
           );
 
-          if (alreadyExists) {
-            return prev;
+          if (exists) {
+            return prev.map((item) =>
+              String(item.id) === String(personId)
+                ? {
+                    ...item,
+                    following: true,
+                  }
+                : item
+            );
           }
 
           return [
@@ -132,16 +197,7 @@ const FollowersFollowing = ({
             },
           ];
         });
-      }
-
-      /*
-       * UNFOLLOW
-       */
-      else {
-        // Followers tab:
-        // person ab current user ko follow nahi kar raha
-        // actually backend response "following" current user's
-        // relationship ko represent karta hai.
+      } else {
         setFollowers((prev) =>
           prev.map((item) =>
             String(item.id) === String(personId)
@@ -153,22 +209,27 @@ const FollowersFollowing = ({
           )
         );
 
-        // Following tab mein unfollow ke baad remove
+        /*
+         * Remove user from Following list.
+         */
         setFollowing((prev) =>
           prev.filter(
             (item) =>
-              String(item.id) !== String(personId)
+              String(item.id) !==
+              String(personId)
           )
         );
       }
 
       /*
-       * Parent Profile ko updated counts bhej do.
+       * Send updated counts to parent Profile.
        */
       onFollowUpdate?.({
         following: data.following,
-        followers_count: data.followers_count,
-        following_count: data.following_count,
+        followers_count:
+          data.followers_count,
+        following_count:
+          data.following_count,
       });
 
       toast.success(
@@ -221,7 +282,9 @@ const FollowersFollowing = ({
               <button
                 key={tab.label}
                 type="button"
-                onClick={() => setActiveTab(tab.label)}
+                onClick={() =>
+                  setActiveTab(tab.label)
+                }
                 className={`relative flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 ${
                   activeTab === tab.label
                     ? "text-[#1877F2]"
@@ -266,21 +329,31 @@ const FollowersFollowing = ({
 
       {/* USERS LIST */}
       <div className="max-h-[55vh] overflow-y-auto">
-        {activeData?.value.length > 0 ? (
+
+        {/* LOADING */}
+        {loading ? (
+          <div className="flex items-center justify-center px-4 py-14">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-gray-200 border-t-[#1877F2]" />
+          </div>
+        ) : activeData?.value.length > 0 ? (
           <div className="divide-y divide-gray-100">
+
             {activeData.value.map((person) => {
-              const personId = person?.id || person?._id;
+              const personId =
+                person?.id || person?._id;
 
               const isLoading =
-                loadingUserId === personId;
+                String(loadingUserId) ===
+                String(personId);
 
               /*
                * Followers:
-               * API ka `following` batata hai ke
-               * current logged-in user is person ko follow karta hai ya nahi.
+               * backend should provide `following`
+               * telling whether current user follows
+               * this person.
                *
                * Following:
-               * list mein jo user hai wo already followed hai.
+               * everyone in this list is already followed.
                */
               const isFollowing =
                 activeTab === "Following"
@@ -295,6 +368,7 @@ const FollowersFollowing = ({
                   }
                   className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-gray-50 sm:px-5 sm:py-4"
                 >
+
                   {/* IMAGE */}
                   <div className="shrink-0">
                     <img
@@ -303,7 +377,9 @@ const FollowersFollowing = ({
                         "/logo.png"
                       }
                       alt={
-                        person?.full_name || "User"
+                        person?.full_name ||
+                        person?.username ||
+                        "User"
                       }
                       className="h-11 w-11 rounded-full object-cover sm:h-12 sm:w-12"
                     />
@@ -312,7 +388,8 @@ const FollowersFollowing = ({
                   {/* INFO */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900">
-                      {person?.full_name || "User"}
+                      {person?.full_name ||
+                        "User"}
                     </p>
 
                     <p className="truncate text-xs font-medium text-slate-400">
@@ -329,14 +406,18 @@ const FollowersFollowing = ({
 
                   {/* ACTION */}
                   <div className="shrink-0">
+
                     {/* FOLLOWERS */}
-                    {activeTab === "Followers" && (
+                    {activeTab ===
+                      "Followers" && (
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleFollowToggle(person);
+                          handleFollowToggle(
+                            person
+                          );
                         }}
                         className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
                           isFollowing
@@ -361,22 +442,29 @@ const FollowersFollowing = ({
                     )}
 
                     {/* FOLLOWING */}
-                    {activeTab === "Following" && (
+                    {activeTab ===
+                      "Following" && (
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleFollowToggle(person);
+                          handleFollowToggle(
+                            person
+                          );
                         }}
                         className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-gray-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-gray-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <UserMinus className="h-4 w-4" />
+                        {isLoading ? (
+                          <span>...</span>
+                        ) : (
+                          <UserCheck className="h-4 w-4" />
+                        )}
 
                         <span className="hidden sm:inline">
                           {isLoading
                             ? "..."
-                            : "Unfollow"}
+                            : "Following"}
                         </span>
                       </button>
                     )}
@@ -408,3 +496,4 @@ const FollowersFollowing = ({
 };
 
 export default FollowersFollowing;
+
