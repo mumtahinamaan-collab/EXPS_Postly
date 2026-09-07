@@ -26,6 +26,7 @@ from .serializers import (
     PostSerializer,
     CommentSerializer,
     NotificationSerializer,
+    ChatListSerializer,
 )
 
 
@@ -40,6 +41,7 @@ def get_image_url(image):
 
     image_value = str(image)
 
+    # ImageKit URL already stored in database
     if (
         image_value.startswith("http://")
         or image_value.startswith("https://")
@@ -58,18 +60,58 @@ def get_image_url(image):
 # ==================================================
 
 def serialize_user(user):
-    return UserSerializer(user).data
+
+    data = UserSerializer(user).data
+
+    # ImageField can incorrectly generate MEDIA_URL
+    # when ImageKit URL is stored inside the field.
+    data["profile_picture"] = get_image_url(
+        user.profile_picture
+    )
+
+    data["cover_photo"] = get_image_url(
+        user.cover_photo
+    )
+
+    return data
 
 
 def serialize_post(post, request):
-    return PostSerializer(
+
+    data = PostSerializer(
         post,
         context={"request": request},
     ).data
 
+    # Fix nested user image URLs
+    if data.get("user"):
+
+        data["user"]["profile_picture"] = get_image_url(
+            post.user.profile_picture
+        )
+
+        data["user"]["cover_photo"] = get_image_url(
+            post.user.cover_photo
+        )
+
+    return data
+
 
 def serialize_comment(comment):
-    return CommentSerializer(comment).data
+
+    data = CommentSerializer(comment).data
+
+    if data.get("user"):
+
+        data["user"]["profile_picture"] = get_image_url(
+            comment.user.profile_picture
+        )
+
+        data["user"]["cover_photo"] = get_image_url(
+            comment.user.cover_photo
+        )
+
+    return data
 
 
 # ==================================================
@@ -84,7 +126,7 @@ def create_notification(
     post=None,
 ):
 
-    # Apne aap ko notification nahi
+    # Do not notify yourself
     if recipient.id == actor.id:
         return
 
@@ -109,7 +151,7 @@ def get_user_data(request):
 
     return Response({
         "success": True,
-        "user": UserSerializer(request.user).data,
+        "user": serialize_user(request.user),
     })
 
 
@@ -182,13 +224,39 @@ def update_user_data(request):
 
     if profile_picture:
 
-        upload = imagekit.files.upload(
-            file=profile_picture.read(),
-            file_name=profile_picture.name,
-            folder="/postly/profile_pictures",
-        )
+        try:
 
-        user.profile_picture = upload.url
+            upload = imagekit.files.upload(
+                file=profile_picture.read(),
+                file_name=profile_picture.name,
+                folder="/postly/profile_pictures",
+            )
+
+            if not upload.url:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Profile picture upload failed."
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # Save ImageKit URL
+            user.profile_picture = upload.url
+
+        except Exception:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Profile picture upload failed."
+                    ),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     # ----------------------------------------------
     # COVER PHOTO
@@ -200,20 +268,54 @@ def update_user_data(request):
 
     if cover_photo:
 
-        upload = imagekit.files.upload(
-            file=cover_photo.read(),
-            file_name=cover_photo.name,
-            folder="/postly/cover_photos",
-        )
+        try:
 
-        user.cover_photo = upload.url
+            upload = imagekit.files.upload(
+                file=cover_photo.read(),
+                file_name=cover_photo.name,
+                folder="/postly/cover_photos",
+            )
+
+            if not upload.url:
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Cover photo upload failed."
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # Save ImageKit URL
+            user.cover_photo = upload.url
+
+        except Exception:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Cover photo upload failed."
+                    ),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    # ----------------------------------------------
+    # SAVE USER
+    # ----------------------------------------------
 
     user.save()
+
+    # ----------------------------------------------
+    # RESPONSE
+    # ----------------------------------------------
 
     return Response({
         "success": True,
         "message": "Profile updated successfully.",
-        "user": UserSerializer(user).data,
+        "user": serialize_user(user),
     })
 
 
@@ -241,11 +343,13 @@ def get_profile(request):
         )
 
     try:
+
         user = User.objects.get(
             id=profile_id
         )
 
     except User.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -258,9 +362,11 @@ def get_profile(request):
     # FOLLOW STATUS
     # ----------------------------------------------
 
-    is_following = request.user.following.filter(
-        id=user.id
-    ).exists()
+    is_following = (
+        request.user.following
+        .filter(id=user.id)
+        .exists()
+    )
 
     # ----------------------------------------------
     # FOLLOWERS / FOLLOWING COUNTS
@@ -289,10 +395,6 @@ def get_profile(request):
         .select_related("user")
         .order_by("-created_at")
     )
-
-    # ----------------------------------------------
-    # POSTS COUNT
-    # ----------------------------------------------
 
     posts_count = posts.count()
 
@@ -325,9 +427,10 @@ def get_profile(request):
     # ----------------------------------------------
 
     return Response({
+
         "success": True,
 
-        "profile": UserSerializer(user).data,
+        "profile": serialize_user(user),
 
         "is_following": is_following,
 
@@ -338,18 +441,18 @@ def get_profile(request):
         "posts_count": posts_count,
 
         "liked_posts": [
-            PostSerializer(
+            serialize_post(
                 post,
-                context={"request": request},
-            ).data
+                request,
+            )
             for post in liked_posts
         ],
 
         "posts": [
-            PostSerializer(
+            serialize_post(
                 post,
-                context={"request": request},
-            ).data
+                request,
+            )
             for post in posts
         ],
     })
@@ -375,6 +478,7 @@ def discover_users(request):
     )
 
     if search:
+
         users = users.filter(
             Q(username__icontains=search)
             | Q(email__icontains=search)
@@ -388,7 +492,7 @@ def discover_users(request):
 
     for user in users:
 
-        user_data = UserSerializer(user).data
+        user_data = serialize_user(user)
 
         user_data["is_following"] = (
             request.user.following
@@ -421,6 +525,7 @@ def toggle_follow(request):
     )
 
     if not target_id:
+
         return Response(
             {
                 "success": False,
@@ -434,6 +539,7 @@ def toggle_follow(request):
     # ----------------------------------------------
 
     if str(user.id) == str(target_id):
+
         return Response(
             {
                 "success": False,
@@ -447,11 +553,13 @@ def toggle_follow(request):
     # ----------------------------------------------
 
     try:
+
         target_user = User.objects.get(
             id=target_id
         )
 
     except User.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -513,6 +621,7 @@ def toggle_follow(request):
         )
 
     return Response({
+
         "success": True,
 
         "following": following,
@@ -538,11 +647,13 @@ def toggle_follow(request):
 def user_social_data(request, user_id):
 
     try:
+
         user = User.objects.get(
             id=user_id
         )
 
     except User.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -635,7 +746,7 @@ def user_social_data(request, user_id):
 
         "success": True,
 
-        "user": UserSerializer(user).data,
+        "user": serialize_user(user),
 
         "is_following": is_following,
 
@@ -645,7 +756,7 @@ def user_social_data(request, user_id):
 
         "followers": [
             {
-                **UserSerializer(follower).data,
+                **serialize_user(follower),
                 "following": (
                     request.user.following
                     .filter(id=follower.id)
@@ -657,7 +768,7 @@ def user_social_data(request, user_id):
 
         "following": [
             {
-                **UserSerializer(following_user).data,
+                **serialize_user(following_user),
                 "following": True,
             }
             for following_user in following
@@ -668,18 +779,18 @@ def user_social_data(request, user_id):
         "total_likes": total_likes,
 
         "posts": [
-            PostSerializer(
+            serialize_post(
                 post,
-                context={"request": request},
-            ).data
+                request,
+            )
             for post in posts
         ],
 
         "liked_posts": [
-            PostSerializer(
+            serialize_post(
                 post,
-                context={"request": request},
-            ).data
+                request,
+            )
             for post in liked_posts
         ],
     })
@@ -730,12 +841,15 @@ def add_post(request):
     # ----------------------------------------------
 
     if content and image_urls:
+
         post_type = "text_with_image"
 
     elif image_urls:
+
         post_type = "image"
 
     else:
+
         post_type = "text"
 
     # ----------------------------------------------
@@ -743,6 +857,7 @@ def add_post(request):
     # ----------------------------------------------
 
     if not content and not image_urls:
+
         return Response(
             {
                 "success": False,
@@ -766,10 +881,10 @@ def add_post(request):
         {
             "success": True,
             "message": "Post created successfully.",
-            "post": PostSerializer(
+            "post": serialize_post(
                 post,
-                context={"request": request},
-            ).data,
+                request,
+            ),
         },
         status=status.HTTP_201_CREATED,
     )
@@ -824,13 +939,14 @@ def post_feed(request):
     )
 
     return Response({
+
         "success": True,
 
         "posts": [
-            PostSerializer(
+            serialize_post(
                 post,
-                context={"request": request},
-            ).data
+                request,
+            )
             for post in posts
         ],
     })
@@ -853,11 +969,13 @@ def toggle_like(request, post_id):
     # ----------------------------------------------
 
     try:
+
         post = Post.objects.get(
             id=post_id
         )
 
     except Post.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -914,6 +1032,7 @@ def toggle_like(request, post_id):
             )
 
     return Response({
+
         "success": True,
 
         "liked": liked,
@@ -935,11 +1054,13 @@ def toggle_like(request, post_id):
 def delete_post(request, post_id):
 
     try:
+
         post = Post.objects.get(
             id=post_id
         )
 
     except Post.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -949,6 +1070,7 @@ def delete_post(request, post_id):
         )
 
     if str(post.user.id) != str(request.user.id):
+
         return Response(
             {
                 "success": False,
@@ -963,7 +1085,9 @@ def delete_post(request, post_id):
     post.delete()
 
     return Response({
+
         "success": True,
+
         "message": "Post deleted successfully.",
     })
 
@@ -979,6 +1103,7 @@ def delete_post(request, post_id):
 def post_details(request, post_id):
 
     try:
+
         post = (
             Post.objects
             .annotate(
@@ -996,6 +1121,7 @@ def post_details(request, post_id):
         )
 
     except Post.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -1017,22 +1143,22 @@ def post_details(request, post_id):
 
         "success": True,
 
-        "post": PostSerializer(
+        "post": serialize_post(
             post,
-            context={"request": request},
-        ).data,
+            request,
+        ),
 
         "likes_count": post.likes_count,
 
         "likes": [
-            UserSerializer(user).data
+            serialize_user(user)
             for user in likes
         ],
 
         "comments_count": post.comments_count,
 
         "comments": [
-            CommentSerializer(comment).data
+            serialize_comment(comment)
             for comment in comments
         ],
     })
@@ -1050,11 +1176,13 @@ def post_comments(request, post_id):
     user = request.user
 
     try:
+
         post = Post.objects.get(
             id=post_id
         )
 
     except Post.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -1077,10 +1205,11 @@ def post_comments(request, post_id):
         )
 
         return Response({
+
             "success": True,
 
             "comments": [
-                CommentSerializer(comment).data
+                serialize_comment(comment)
                 for comment in comments
             ],
 
@@ -1107,6 +1236,7 @@ def post_comments(request, post_id):
         )
 
         if not comment_id:
+
             return Response(
                 {
                     "success": False,
@@ -1116,12 +1246,14 @@ def post_comments(request, post_id):
             )
 
         try:
+
             comment = Comment.objects.get(
                 id=comment_id,
                 post=post
             )
 
         except Comment.DoesNotExist:
+
             return Response(
                 {
                     "success": False,
@@ -1131,6 +1263,7 @@ def post_comments(request, post_id):
             )
 
         if str(comment.user.id) != str(user.id):
+
             return Response(
                 {
                     "success": False,
@@ -1145,8 +1278,13 @@ def post_comments(request, post_id):
         comment.delete()
 
         return Response({
+
             "success": True,
-            "message": "Comment deleted successfully.",
+
+            "message": (
+                "Comment deleted successfully."
+            ),
+
             "comments_count": (
                 Comment.objects
                 .filter(post=post)
@@ -1164,6 +1302,7 @@ def post_comments(request, post_id):
     ).strip()
 
     if not content:
+
         return Response(
             {
                 "success": False,
@@ -1198,11 +1337,14 @@ def post_comments(request, post_id):
     return Response(
         {
             "success": True,
-            "message": "Comment added successfully.",
 
-            "comment": CommentSerializer(
+            "message": (
+                "Comment added successfully."
+            ),
+
+            "comment": serialize_comment(
                 comment
-            ).data,
+            ),
 
             "comments_count": (
                 Comment.objects
@@ -1230,6 +1372,7 @@ def upload_chat_image(request):
     )
 
     if not image:
+
         return Response(
             {
                 "success": False,
@@ -1249,8 +1392,11 @@ def upload_chat_image(request):
         media_url = upload.url
 
         return Response({
+
             "success": True,
+
             "message_type": "image",
+
             "media_url": media_url,
         })
 
@@ -1282,6 +1428,7 @@ def get_chat_messages(request):
     )
 
     if not to_user_id:
+
         return Response(
             {
                 "success": False,
@@ -1295,11 +1442,13 @@ def get_chat_messages(request):
     # ----------------------------------------------
 
     try:
+
         other_user = User.objects.get(
             id=to_user_id
         )
 
     except User.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -1349,9 +1498,11 @@ def get_chat_messages(request):
     # ----------------------------------------------
 
     return Response({
+
         "success": True,
 
         "messages": [
+
             {
                 "id": message.id,
 
@@ -1402,11 +1553,13 @@ def delete_chat_message(request, message_id):
     # ----------------------------------------------
 
     try:
+
         message = Message.objects.get(
             id=message_id
         )
 
     except Message.DoesNotExist:
+
         return Response(
             {
                 "success": False,
@@ -1420,6 +1573,7 @@ def delete_chat_message(request, message_id):
     # ----------------------------------------------
 
     if str(message.from_user.id) != str(user.id):
+
         return Response(
             {
                 "success": False,
@@ -1438,8 +1592,12 @@ def delete_chat_message(request, message_id):
     message.delete()
 
     return Response({
+
         "success": True,
-        "message": "Message deleted successfully.",
+
+        "message": (
+            "Message deleted successfully."
+        ),
     })
 
 
@@ -1481,6 +1639,7 @@ def get_notifications(request):
     )
 
     return Response({
+
         "success": True,
 
         "notifications": serializer.data,
@@ -1503,6 +1662,7 @@ def mark_notification_read(
 ):
 
     try:
+
         notification = Notification.objects.get(
             id=notification_id,
             recipient=request.user,
@@ -1527,7 +1687,9 @@ def mark_notification_read(
     )
 
     return Response({
+
         "success": True,
+
         "message": (
             "Notification marked as read."
         ),
@@ -1552,7 +1714,9 @@ def mark_all_notifications_read(request):
     )
 
     return Response({
+
         "success": True,
+
         "message": (
             "All notifications marked as read."
         ),
@@ -1573,6 +1737,7 @@ def delete_notification(
 ):
 
     try:
+
         notification = Notification.objects.get(
             id=notification_id,
             recipient=request.user,
@@ -1591,7 +1756,9 @@ def delete_notification(
     notification.delete()
 
     return Response({
+
         "success": True,
+
         "message": (
             "Notification deleted successfully."
         ),
@@ -1613,9 +1780,172 @@ def delete_all_notifications(request):
     ).delete()
 
     return Response({
+
         "success": True,
+
         "message": (
             "All notifications deleted successfully."
         ),
     })
+
+
+# ==================================================
+# CHAT LIST
+# GET /api/chat/list/
+# ==================================================
+
+@api_view(["GET"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def chat_list(request):
+
+    user = request.user
+
+    # --------------------------------------------------
+    # Get all messages involving current user
+    # --------------------------------------------------
+
+    messages = (
+        Message.objects
+        .filter(
+            Q(from_user=user) |
+            Q(to_user=user)
+        )
+        .select_related(
+            "from_user",
+            "to_user",
+        )
+        .order_by("-created_at")
+    )
+
+    # --------------------------------------------------
+    # Keep only latest message for each conversation
+    # --------------------------------------------------
+
+    conversations = {}
+
+    for message in messages:
+
+        if message.from_user_id == user.id:
+            other_user = message.to_user
+        else:
+            other_user = message.from_user
+
+        other_user_id = str(other_user.id)
+
+        # Because messages are ordered newest first,
+        # first message we find is the latest message.
+        if other_user_id not in conversations:
+
+            unread_count = Message.objects.filter(
+                from_user=other_user,
+                to_user=user,
+                seen=False,
+            ).count()
+
+            conversations[other_user_id] = {
+                "user": other_user,
+                "last_message": message,
+                "unread_count": unread_count,
+            }
+
+    # --------------------------------------------------
+    # Build response
+    # --------------------------------------------------
+
+    chat_data = []
+
+    for conversation in conversations.values():
+
+        other_user = conversation["user"]
+        last_message = conversation["last_message"]
+
+        chat_data.append({
+            "user": UserSerializer(
+                other_user
+            ).data,
+
+            "last_message": last_message.text,
+
+            "last_message_type": (
+                last_message.message_type
+            ),
+
+            "last_message_media_url": (
+                last_message.media_url
+            ),
+
+            "last_message_seen": (
+                last_message.seen
+            ),
+
+            "last_message_from_me": (
+                last_message.from_user_id == user.id
+            ),
+
+            "last_message_time": (
+                last_message.created_at
+            ),
+
+            "unread_count": (
+                conversation["unread_count"]
+            ),
+        })
+
+    # --------------------------------------------------
+    # Fix profile/cover image URLs
+    # --------------------------------------------------
+
+    for item in chat_data:
+
+        chat_user = item["user"]
+
+        try:
+            user_object = User.objects.get(
+                id=chat_user["id"]
+            )
+
+            chat_user["profile_picture"] = get_image_url(
+                user_object.profile_picture
+            )
+
+            chat_user["cover_photo"] = get_image_url(
+                user_object.cover_photo
+            )
+
+        except User.DoesNotExist:
+            pass
+
+    # --------------------------------------------------
+    # Return response
+    # --------------------------------------------------
+
+    return Response({
+        "success": True,
+        "chats": chat_data,
+    })
+
+class ChatListSerializer(serializers.Serializer):
+    user = UserSerializer(read_only=True)
+    last_message = serializers.CharField(
+        allow_null=True
+    )
+    last_message_type = serializers.CharField(
+        allow_null=True
+    )
+    last_message_media_url = serializers.CharField(
+        allow_null=True
+    )
+    last_message_seen = serializers.BooleanField(
+        allow_null=True
+    )
+    last_message_from_me = serializers.BooleanField()
+    last_message_time = serializers.DateTimeField(
+        allow_null=True
+    )
+    unread_count = serializers.IntegerField()
+
+
+
+
 

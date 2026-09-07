@@ -227,3 +227,16 @@ class NotificationSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+
+class ChatListSerializer(serializers.Serializer):
+    user = UserSerializer(read_only=True)
+    last_message = serializers.CharField(allow_null=True)
+    last_message_type = serializers.CharField(allow_null=True)
+    last_message_media_url = serializers.CharField(allow_null=True)
+    last_message_seen = serializers.BooleanField(allow_null=True)
+    last_message_from_me = serializers.BooleanField()
+    last_message_time = serializers.DateTimeField(allow_null=True)
+    unread_count = serializers.IntegerField()
+
+
+
