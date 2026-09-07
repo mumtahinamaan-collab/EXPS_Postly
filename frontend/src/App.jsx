@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Messages from "./pages/Messages";
-import Connection from "./pages/Connection";
+import Notifications from "./pages/Notifications";
 import Discover from "./pages/Discover";
 import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
@@ -41,7 +41,7 @@ const App = () => {
           <Route path="/messages" element={<Messages />} />
 
           <Route path="/messages/:userId" element={<Messages />} />
-          <Route path="/connections" element={<Connection />} />
+          <Route path="/notifications" element={<Notifications />} />
 
           <Route path="/discover" element={<Discover />} />
 

@@ -1,6 +1,13 @@
+
 from rest_framework import serializers
 
-from .models import User, Post, Comment, Message
+from .models import (
+    User,
+    Post,
+    Comment,
+    Message,
+    Notification,
+)
 
 
 # ==================================================
@@ -182,3 +189,41 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+# ==================================================
+# NOTIFICATION SERIALIZER
+# ==================================================
+
+class NotificationSerializer(serializers.ModelSerializer):
+
+    actor = UserSerializer(read_only=True)
+
+    post_id = serializers.IntegerField(
+        source="post.id",
+        read_only=True,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = Notification
+
+        fields = [
+            "id",
+            "recipient",
+            "actor",
+            "notification_type",
+            "post_id",
+            "message",
+            "is_read",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "recipient",
+            "actor",
+            "post_id",
+            "created_at",
+        ]
+

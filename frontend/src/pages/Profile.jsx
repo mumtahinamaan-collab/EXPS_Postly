@@ -11,6 +11,7 @@ import ProfileModal from "../components/ProfileModal";
 import FollowersFollowing from "../components/FollowersFollowing";
 import { useSelector } from "react-redux";
 
+
 import moment from "moment";
 
 const Profile = () => {
@@ -120,7 +121,7 @@ const Profile = () => {
               {!profileId && (
                 <div className="mt-4 w-full flex gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:mt-6 sm:p-6">
                   <img
-                    src={user?.profile_picture || "/logo.png"}
+                    src={user?.profile_picture || "/image.png"}
                     alt=""
                     className="h-10 w-10 shrink-0 rounded-full object-cover sm:h-11 sm:w-11"
                   />
@@ -196,26 +197,28 @@ const Profile = () => {
 
           {/* ================= LIKES ================= */}
           {activeTab === "liked" && (
-            <div className="mt-4 flex w-full flex-col items-center gap-4 sm:mt-6 sm:gap-5">
-              {likedPosts.length > 0 ? (
-                likedPosts.map((post) => (
-                  <div
-                    key={post?._id || post?.id}
-                    className="w-full flex items-center justify-center"
-                  >
-                    <PostCard
-                      className="mt-2 w-full rounded-xl border border-gray-200 bg-white sm:mt-6 sm:p-6"
-                      post={post}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div className="w-full rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
-                  <p className="text-sm text-gray-500">No liked posts yet</p>
-                </div>
-              )}
-            </div>
-          )}
+  <div className="mt-4 flex w-full flex-col items-center gap-4 sm:mt-6 sm:gap-5">
+    {likedPosts.length > 0 ? (
+      likedPosts.map((post) => (
+        <div
+          key={post?._id || post?.id}
+          className="w-full flex items-center justify-center"
+        >
+          <PostCard
+            className="mt-2 w-full rounded-xl border border-gray-200 bg-white sm:mt-6 sm:p-6"
+            post={post}
+          />
+        </div>
+      ))
+    ) : (
+      <div className="w-full rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
+        <p className="text-sm text-gray-500">
+          No liked posts yet
+        </p>
+      </div>
+    )}
+  </div>
+)}
 
           {/* ================= ABOUT ================= */}
           {activeTab === "about" && (

@@ -235,7 +235,7 @@ const UserProfileInfo = ({
         {/* Profile Image */}
         <div className="absolute -top-14 left-4 h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg sm:left-6 md:left-8 md:-top-16 md:h-32 md:w-32">
           <img
-            src={user?.profile_picture || "/logo.png"}
+            src={user?.profile_picture || "/image.png"}
             alt={user?.full_name || "profile"}
             className="h-full w-full rounded-full object-cover"
           />

@@ -1,3 +1,4 @@
+
 from django.db.models import Count, Q
 
 from rest_framework.decorators import (
@@ -13,7 +14,14 @@ from rest_framework import status
 
 from .authentication import ClerkAuthentication
 from .imagekit import imagekit
-from .models import User, Post, Comment, Message
+from .models import (
+    User,
+    Post,
+    Comment,
+    Message,
+    Notification,
+)
+from .serializers import NotificationSerializer
 
 
 # ==================================================
@@ -21,101 +29,48 @@ from .models import User, Post, Comment, Message
 # ==================================================
 
 def get_image_url(image):
+
     if not image:
         return None
 
     image_value = str(image)
 
-    if image_value.startswith("http://") or image_value.startswith("https://"):
+    if (
+        image_value.startswith("http://")
+        or image_value.startswith("https://")
+    ):
         return image_value
 
     try:
         return image.url
+
     except (ValueError, AttributeError):
         return image_value
 
 
-def serialize_user(user):
-    return {
-        "id": user.id,
-        "email": user.email,
-        "full_name": user.full_name,
-        "username": user.username,
-        "bio": user.bio,
+# ==================================================
+# NOTIFICATION HELPER
+# ==================================================
 
-        "profile_picture": get_image_url(
-            user.profile_picture
-        ),
+def create_notification(
+    recipient,
+    actor,
+    notification_type,
+    message="",
+    post=None,
+):
 
-        "cover_photo": get_image_url(
-            user.cover_photo
-        ),
+    # Apne aap ko notification nahi
+    if recipient.id == actor.id:
+        return
 
-        "location": user.location,
-        "created_at": user.created_at,
-        "updated_at": user.updated_at,
-
-        "followers_count": user.followers.count(),
-        "following_count": user.following.count(),
-    }
-
-
-def serialize_post(post, current_user=None):
-    is_liked = False
-
-    if current_user:
-        is_liked = post.likes.filter(
-            id=current_user.id
-        ).exists()
-
-    return {
-        "id": post.id,
-
-        "user": serialize_user(
-            post.user
-        ),
-
-        "content": post.content,
-
-        "image_urls": post.image_urls,
-
-        "post_type": post.post_type,
-
-        "likes_count": getattr(
-            post,
-            "likes_count",
-            post.likes.count()
-        ),
-
-        "comments_count": getattr(
-            post,
-            "comments_count",
-            post.comments.count()
-        ),
-
-        "is_liked": is_liked,
-
-        "created_at": post.created_at,
-        "updated_at": post.updated_at,
-    }
-
-
-def serialize_comment(comment):
-    return {
-        "id": comment.id,
-
-        "post_id": comment.post_id,
-
-        "user": serialize_user(
-            comment.user
-        ),
-
-        "content": comment.content,
-
-        "created_at": comment.created_at,
-
-        "updated_at": comment.updated_at,
-    }
+    Notification.objects.create(
+        recipient=recipient,
+        actor=actor,
+        notification_type=notification_type,
+        message=message,
+        post=post,
+    )
 
 
 # ==================================================
@@ -395,24 +350,19 @@ def discover_users(request):
         ""
     ).strip()
 
-    if not search:
-        return Response({
-            "success": True,
-            "users": [],
-        })
+    users = User.objects.exclude(
+        id=request.user.id
+    )
 
-    users = (
-        User.objects
-        .filter(
+    if search:
+        users = users.filter(
             Q(username__icontains=search)
             | Q(email__icontains=search)
             | Q(full_name__icontains=search)
             | Q(location__icontains=search)
         )
-        .exclude(
-            id=request.user.id
-        )[:20]
-    )
+
+    users = users[:20]
 
     users_data = []
 
@@ -426,9 +376,7 @@ def discover_users(request):
             .exists()
         )
 
-        users_data.append(
-            user_data
-        )
+        users_data.append(user_data)
 
     return Response({
         "success": True,
@@ -534,6 +482,17 @@ def toggle_follow(request):
 
         following = True
 
+        # Notification
+        create_notification(
+            recipient=target_user,
+            actor=user,
+            notification_type="follow",
+            message=(
+                f"{user.username} "
+                f"started following you."
+            ),
+        )
+
     return Response({
         "success": True,
 
@@ -558,10 +517,6 @@ def toggle_follow(request):
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
 def user_social_data(request, user_id):
-
-    # ----------------------------------------------
-    # GET USER
-    # ----------------------------------------------
 
     try:
         user = User.objects.get(
@@ -672,12 +627,22 @@ def user_social_data(request, user_id):
         "following_count": following.count(),
 
         "followers": [
-            serialize_user(follower)
+            {
+                **serialize_user(follower),
+                "following": (
+                    request.user.following
+                    .filter(id=follower.id)
+                    .exists()
+                ),
+            }
             for follower in followers
         ],
 
         "following": [
-            serialize_user(following_user)
+            {
+                **serialize_user(following_user),
+                "following": True,
+            }
             for following_user in following
         ],
 
@@ -918,6 +883,19 @@ def toggle_like(request, post_id):
 
         liked = True
 
+        if post.user.id != user.id:
+
+            create_notification(
+                recipient=post.user,
+                actor=user,
+                notification_type="like",
+                message=(
+                    f"{user.username} "
+                    f"liked your post."
+                ),
+                post=post,
+            )
+
     return Response({
         "success": True,
 
@@ -939,10 +917,6 @@ def toggle_like(request, post_id):
 @permission_classes([IsAuthenticated])
 def delete_post(request, post_id):
 
-    # ----------------------------------------------
-    # GET POST
-    # ----------------------------------------------
-
     try:
         post = Post.objects.get(
             id=post_id
@@ -957,22 +931,17 @@ def delete_post(request, post_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # ----------------------------------------------
-    # ONLY POST OWNER CAN DELETE
-    # ----------------------------------------------
-
     if str(post.user.id) != str(request.user.id):
         return Response(
             {
                 "success": False,
-                "message": "You can only delete your own post.",
+                "message": (
+                    "You can only delete "
+                    "your own post."
+                ),
             },
             status=status.HTTP_403_FORBIDDEN,
         )
-
-    # ----------------------------------------------
-    # DELETE POST
-    # ----------------------------------------------
 
     post.delete()
 
@@ -991,10 +960,6 @@ def delete_post(request, post_id):
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
 def post_details(request, post_id):
-
-    # ----------------------------------------------
-    # GET POST
-    # ----------------------------------------------
 
     try:
         post = (
@@ -1022,10 +987,6 @@ def post_details(request, post_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # ----------------------------------------------
-    # COMMENTS
-    # ----------------------------------------------
-
     comments = (
         Comment.objects
         .filter(post=post)
@@ -1033,15 +994,7 @@ def post_details(request, post_id):
         .order_by("created_at")
     )
 
-    # ----------------------------------------------
-    # LIKES
-    # ----------------------------------------------
-
     likes = post.likes.all()
-
-    # ----------------------------------------------
-    # RESPONSE
-    # ----------------------------------------------
 
     return Response({
 
@@ -1070,8 +1023,6 @@ def post_details(request, post_id):
 
 # ==================================================
 # 12. GET / ADD / DELETE COMMENTS
-# GET  /api/posts/<post_id>/comments/
-# POST /api/posts/<post_id>/comments/
 # ==================================================
 
 @api_view(["GET", "POST"])
@@ -1080,10 +1031,6 @@ def post_details(request, post_id):
 def post_comments(request, post_id):
 
     user = request.user
-
-    # ----------------------------------------------
-    # GET POST
-    # ----------------------------------------------
 
     try:
         post = Post.objects.get(
@@ -1166,10 +1113,6 @@ def post_comments(request, post_id):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # ------------------------------------------
-        # ONLY COMMENT OWNER CAN DELETE
-        # ------------------------------------------
-
         if str(comment.user.id) != str(user.id):
             return Response(
                 {
@@ -1217,6 +1160,23 @@ def post_comments(request, post_id):
         user=user,
         content=content,
     )
+
+    # ----------------------------------------------
+    # COMMENT NOTIFICATION
+    # ----------------------------------------------
+
+    if post.user.id != user.id:
+
+        create_notification(
+            recipient=post.user,
+            actor=user,
+            notification_type="comment",
+            message=(
+                f"{user.username} "
+                f"commented on your post."
+            ),
+            post=post,
+        )
 
     return Response(
         {
@@ -1407,6 +1367,7 @@ def get_chat_messages(request):
         ],
     })
 
+
 # ==================================================
 # 15. DELETE CHAT MESSAGE
 # DELETE /api/chat/messages/<message_id>/delete/
@@ -1445,7 +1406,10 @@ def delete_chat_message(request, message_id):
         return Response(
             {
                 "success": False,
-                "message": "You can only delete your own message.",
+                "message": (
+                    "You can only delete "
+                    "your own message."
+                ),
             },
             status=status.HTTP_403_FORBIDDEN,
         )
@@ -1460,3 +1424,181 @@ def delete_chat_message(request, message_id):
         "success": True,
         "message": "Message deleted successfully.",
     })
+
+
+# ==================================================
+# 16. GET NOTIFICATIONS
+# GET /api/notifications/
+# ==================================================
+
+@api_view(["GET"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+
+    notifications = (
+        Notification.objects
+        .filter(
+            recipient=request.user
+        )
+        .select_related(
+            "actor",
+            "recipient",
+            "post",
+        )
+        .order_by("-created_at")
+    )
+
+    serializer = NotificationSerializer(
+        notifications,
+        many=True,
+        context={
+            "request": request
+        },
+    )
+
+    unread_count = (
+        notifications
+        .filter(is_read=False)
+        .count()
+    )
+
+    return Response({
+        "success": True,
+
+        "notifications": serializer.data,
+
+        "unread_count": unread_count,
+    })
+
+
+# ==================================================
+# 17. MARK ONE NOTIFICATION AS READ
+# PATCH /api/notifications/<notification_id>/read/
+# ==================================================
+
+@api_view(["PATCH"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def mark_notification_read(
+    request,
+    notification_id
+):
+
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            recipient=request.user,
+        )
+
+    except Notification.DoesNotExist:
+
+        return Response(
+            {
+                "success": False,
+                "message": "Notification not found.",
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    notification.is_read = True
+
+    notification.save(
+        update_fields=[
+            "is_read"
+        ]
+    )
+
+    return Response({
+        "success": True,
+        "message": (
+            "Notification marked as read."
+        ),
+    })
+
+
+# ==================================================
+# 18. MARK ALL NOTIFICATIONS AS READ
+# PATCH /api/notifications/read-all/
+# ==================================================
+
+@api_view(["PATCH"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_read(request):
+
+    Notification.objects.filter(
+        recipient=request.user,
+        is_read=False,
+    ).update(
+        is_read=True
+    )
+
+    return Response({
+        "success": True,
+        "message": (
+            "All notifications marked as read."
+        ),
+    })
+
+
+# ==================================================
+# 19. DELETE ONE NOTIFICATION
+# DELETE /api/notifications/<notification_id>/
+# ==================================================
+
+@api_view(["DELETE"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_notification(
+    request,
+    notification_id
+):
+
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            recipient=request.user,
+        )
+
+    except Notification.DoesNotExist:
+
+        return Response(
+            {
+                "success": False,
+                "message": "Notification not found.",
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    notification.delete()
+
+    return Response({
+        "success": True,
+        "message": (
+            "Notification deleted successfully."
+        ),
+    })
+
+
+# ==================================================
+# 20. DELETE ALL NOTIFICATIONS
+# DELETE /api/notifications/delete-all/
+# ==================================================
+
+@api_view(["DELETE"])
+@authentication_classes([ClerkAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_all_notifications(request):
+
+    Notification.objects.filter(
+        recipient=request.user
+    ).delete()
+
+    return Response({
+        "success": True,
+        "message": (
+            "All notifications deleted successfully."
+        ),
+    })
+

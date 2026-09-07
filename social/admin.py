@@ -5,6 +5,7 @@ from .models import (
     Post,
     Comment,
     Message,
+    Notification,
 )
 
 
@@ -144,6 +145,38 @@ class MessageAdmin(admin.ModelAdmin):
     readonly_fields = (
         "created_at",
         "updated_at",
+    )
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "id",
+        "recipient",
+        "actor",
+        "notification_type",
+        "post",
+        "message",
+        "is_read",
+        "created_at",
+    )
+
+    search_fields = (
+        "recipient__username",
+        "recipient__email",
+        "actor__username",
+        "actor__email",
+        "message",
+    )
+
+    list_filter = (
+        "notification_type",
+        "is_read",
+        "created_at",
+    )
+
+    readonly_fields = (
+        "created_at",
     )
 
 

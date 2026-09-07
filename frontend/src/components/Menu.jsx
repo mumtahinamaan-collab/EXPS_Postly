@@ -1,13 +1,14 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { House, MessageCircle, Users, Search, UserRound } from "lucide-react";
+import { House, MessageCircle, Search, UserRound, Bell } from "lucide-react";
 
 const MenuItems = ({ setSidebarOpen }) => {
   const menuItems = [
     { to: "/", label: "Feed", icon: House },
-    { to: "/messages", label: "Messages", icon: MessageCircle },
-    { to: "/connections", label: "Connections", icon: Users },
     { to: "/discover", label: "Discover", icon: Search },
+    
+    { to: "/notifications", label: "Notifications", icon: Bell},
+    { to: "/messages", label: "Messages", icon: MessageCircle },
     { to: "/profile", label: "Profile", icon: UserRound },
   ];
 

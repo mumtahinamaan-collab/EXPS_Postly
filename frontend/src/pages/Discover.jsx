@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
@@ -6,48 +5,79 @@ import UserCard from "../components/UserCard";
 import Loading from "../components/Loading";
 import { useAuth } from "@clerk/react";
 
-import { dummyUserData } from "../assets/dummyData";
 import { useDispatch } from "react-redux";
-import {fetchUser} from "../features/users/usersSlice"
-import {toast} from "react-hot-toast"
-import api from "../api/axios"
+import { fetchUser } from "../features/users/usersSlice";
+import { toast } from "react-hot-toast";
+import api from "../api/axios";
 
 const Discover = () => {
   const [input, setInput] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const {getToken} = useAuth();
-  const dispatch = useDispatch()
 
-  const handleSearch = async (e) => {
-    if (e.key === "Enter") {
-      try{
-        setUsers([])
-        setLoading(true);
-        const { data } = await api.post(`users/discover/`,
-                {input},
-                {
-                  headers: {
-                    Authorization: `Bearer  ${await getToken()}`,
-                  },
-                }
-              );
-        
-              data.success?setUsers(data.users):toast.error(data.message)
-              setLoading (false)
-      }catch(error){
-        toast.error(error.massage)
-        
+  const { getToken } = useAuth();
+  const dispatch = useDispatch();
+
+  // Fetch users
+  const fetchUsers = async (searchInput = "") => {
+    try {
+      setLoading(true);
+
+      const token = await getToken();
+
+      const { data } = await api.post(
+        "/users/discover/",
+        {
+          input: searchInput,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (data.success) {
+        setUsers(data.users || []);
+      } else {
+        toast.error(data.message || "Unable to load users");
+        setUsers([]);
       }
-      setLoading(false)
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to load users"
+      );
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
-  useEffect((effect)=>{
-    getToken().then((Token)=>{
-      dispatch (fetchUser(Token))
-    })
 
-  }, [getToken, dispatch])
+  // Page open hote hi all users
+  useEffect(() => {
+    fetchUsers("");
+  }, []);
+
+  // Search on Enter
+  const handleSearch = async (e) => {
+    if (e.key === "Enter") {
+      fetchUsers(input.trim());
+    }
+  };
+
+  // Current logged-in user
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const token = await getToken();
+
+      if (token) {
+        dispatch(fetchUser(token));
+      }
+    };
+
+    loadCurrentUser();
+  }, [getToken, dispatch]);
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#fcfcfc]">
@@ -107,18 +137,25 @@ const Discover = () => {
           {users.map((user) => (
             <UserCard
               user={user}
-              key={user?._id || user?.id}
+              key={user?.id || user?._id}
             />
           ))}
         </div>
       )}
 
+      {/* NO USERS */}
+      {!loading && users.length === 0 && (
+        <div className="py-16 text-center">
+          <p className="text-sm font-medium text-slate-500">
+            No users found
+          </p>
+        </div>
+      )}
+
       {/* LOADING */}
       {loading && <Loading height="60vh" />}
-
     </div>
   );
 };
 
 export default Discover;
-
