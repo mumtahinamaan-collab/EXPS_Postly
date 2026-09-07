@@ -21,7 +21,12 @@ from .models import (
     Message,
     Notification,
 )
-from .serializers import NotificationSerializer
+from .serializers import (
+    UserSerializer,
+    PostSerializer,
+    CommentSerializer,
+    NotificationSerializer,
+)
 
 
 # ==================================================
@@ -46,6 +51,25 @@ def get_image_url(image):
 
     except (ValueError, AttributeError):
         return image_value
+
+
+# ==================================================
+# SERIALIZER HELPERS
+# ==================================================
+
+def serialize_user(user):
+    return UserSerializer(user).data
+
+
+def serialize_post(post, request):
+    return PostSerializer(
+        post,
+        context={"request": request},
+    ).data
+
+
+def serialize_comment(comment):
+    return CommentSerializer(comment).data
 
 
 # ==================================================
@@ -85,9 +109,7 @@ def get_user_data(request):
 
     return Response({
         "success": True,
-        "user": serialize_user(
-            request.user
-        ),
+        "user": UserSerializer(request.user).data,
     })
 
 
@@ -191,7 +213,7 @@ def update_user_data(request):
     return Response({
         "success": True,
         "message": "Profile updated successfully.",
-        "user": serialize_user(user),
+        "user": UserSerializer(user).data,
     })
 
 
@@ -305,9 +327,7 @@ def get_profile(request):
     return Response({
         "success": True,
 
-        "profile": serialize_user(
-            user
-        ),
+        "profile": UserSerializer(user).data,
 
         "is_following": is_following,
 
@@ -318,18 +338,18 @@ def get_profile(request):
         "posts_count": posts_count,
 
         "liked_posts": [
-            serialize_post(
+            PostSerializer(
                 post,
-                request.user
-            )
+                context={"request": request},
+            ).data
             for post in liked_posts
         ],
 
         "posts": [
-            serialize_post(
+            PostSerializer(
                 post,
-                request.user
-            )
+                context={"request": request},
+            ).data
             for post in posts
         ],
     })
@@ -368,7 +388,7 @@ def discover_users(request):
 
     for user in users:
 
-        user_data = serialize_user(user)
+        user_data = UserSerializer(user).data
 
         user_data["is_following"] = (
             request.user.following
@@ -482,7 +502,6 @@ def toggle_follow(request):
 
         following = True
 
-        # Notification
         create_notification(
             recipient=target_user,
             actor=user,
@@ -616,9 +635,7 @@ def user_social_data(request, user_id):
 
         "success": True,
 
-        "user": serialize_user(
-            user
-        ),
+        "user": UserSerializer(user).data,
 
         "is_following": is_following,
 
@@ -628,7 +645,7 @@ def user_social_data(request, user_id):
 
         "followers": [
             {
-                **serialize_user(follower),
+                **UserSerializer(follower).data,
                 "following": (
                     request.user.following
                     .filter(id=follower.id)
@@ -640,7 +657,7 @@ def user_social_data(request, user_id):
 
         "following": [
             {
-                **serialize_user(following_user),
+                **UserSerializer(following_user).data,
                 "following": True,
             }
             for following_user in following
@@ -651,18 +668,18 @@ def user_social_data(request, user_id):
         "total_likes": total_likes,
 
         "posts": [
-            serialize_post(
+            PostSerializer(
                 post,
-                request.user
-            )
+                context={"request": request},
+            ).data
             for post in posts
         ],
 
         "liked_posts": [
-            serialize_post(
+            PostSerializer(
                 post,
-                request.user
-            )
+                context={"request": request},
+            ).data
             for post in liked_posts
         ],
     })
@@ -749,10 +766,10 @@ def add_post(request):
         {
             "success": True,
             "message": "Post created successfully.",
-            "post": serialize_post(
+            "post": PostSerializer(
                 post,
-                request.user
-            ),
+                context={"request": request},
+            ).data,
         },
         status=status.HTTP_201_CREATED,
     )
@@ -810,10 +827,10 @@ def post_feed(request):
         "success": True,
 
         "posts": [
-            serialize_post(
+            PostSerializer(
                 post,
-                user
-            )
+                context={"request": request},
+            ).data
             for post in posts
         ],
     })
@@ -1000,22 +1017,22 @@ def post_details(request, post_id):
 
         "success": True,
 
-        "post": serialize_post(
+        "post": PostSerializer(
             post,
-            request.user
-        ),
+            context={"request": request},
+        ).data,
 
         "likes_count": post.likes_count,
 
         "likes": [
-            serialize_user(user)
+            UserSerializer(user).data
             for user in likes
         ],
 
         "comments_count": post.comments_count,
 
         "comments": [
-            serialize_comment(comment)
+            CommentSerializer(comment).data
             for comment in comments
         ],
     })
@@ -1063,7 +1080,7 @@ def post_comments(request, post_id):
             "success": True,
 
             "comments": [
-                serialize_comment(comment)
+                CommentSerializer(comment).data
                 for comment in comments
             ],
 
@@ -1183,9 +1200,9 @@ def post_comments(request, post_id):
             "success": True,
             "message": "Comment added successfully.",
 
-            "comment": serialize_comment(
+            "comment": CommentSerializer(
                 comment
-            ),
+            ).data,
 
             "comments_count": (
                 Comment.objects
