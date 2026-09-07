@@ -1925,7 +1925,7 @@ def chat_list(request):
         "chats": chat_data,
     })
 
-)
+
 
 
 
