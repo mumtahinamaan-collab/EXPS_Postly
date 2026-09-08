@@ -37,12 +37,16 @@ from .serializers import (
 
 def get_image_url(image):
 
+    DEFAULT_PROFILE_PICTURE = (
+        "https://ik.imagekit.io/mumtahina/"
+        "postly/profile_pictures/image.jpg"
+    )
+
     if not image:
-        return None
+        return DEFAULT_PROFILE_PICTURE
 
     image_value = str(image)
 
-    # ImageKit URL already stored in database
     if (
         image_value.startswith("http://")
         or image_value.startswith("https://")
@@ -54,7 +58,6 @@ def get_image_url(image):
 
     except (ValueError, AttributeError):
         return image_value
-
 
 # ==================================================
 # SERIALIZER HELPERS

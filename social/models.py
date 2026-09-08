@@ -11,7 +11,7 @@ class User(models.Model):
     full_name = models.CharField(max_length=255)
     username = models.CharField(max_length=150, unique=True)
     bio = models.TextField(default='Hey there! I am using Postly.')
-    profile_picture = models.ImageField(upload_to='profile_pictures/',default="image.jpg", blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     cover_photo = models.ImageField(upload_to='cover_photos/', blank=True, null=True)
     location = models.CharField(max_length=255, default='', blank=True)
 
