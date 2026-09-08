@@ -9,6 +9,7 @@ import moment from "moment";
 import { useAuth, useUser } from "@clerk/react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const Comments = ({
   postId,
@@ -21,9 +22,9 @@ const Comments = ({
 }) => {
   const { getToken } = useAuth();
   const { user } = useUser();
+  const navigate = useNavigate();
 
-  const [commentText, setCommentText] =
-    useState("");
+  const [commentText, setCommentText] = useState("");
 
   const [commentsLoading, setCommentsLoading] =
     useState(false);
@@ -55,20 +56,16 @@ const Comments = ({
       );
 
       if (data.success) {
-        const newComments =
-          data.comments || [];
+        const newComments = data.comments || [];
 
         const newCount =
-          data.comments_count ??
-          newComments.length ??
-          0;
+          data.comments_count ?? newComments.length ?? 0;
 
         setComments(newComments);
         updateCount(newCount);
       } else {
         toast.error(
-          data.message ||
-            "Unable to load comments"
+          data.message || "Unable to load comments"
         );
       }
     } catch (error) {
@@ -122,8 +119,7 @@ const Comments = ({
         updateCount(newCount);
       } else {
         toast.error(
-          data.message ||
-            "Unable to add comment"
+          data.message || "Unable to add comment"
         );
       }
     } catch (error) {
@@ -136,9 +132,7 @@ const Comments = ({
     }
   };
 
-  const handleDeleteComment = async (
-    commentId
-  ) => {
+  const handleDeleteComment = async (commentId) => {
     try {
       const token = await getToken();
 
@@ -158,23 +152,18 @@ const Comments = ({
       if (data.success) {
         setComments((prev) =>
           prev.filter(
-            (comment) =>
-              comment.id !== commentId
+            (comment) => comment.id !== commentId
           )
         );
 
         const newCount =
           data.comments_count ??
-          Math.max(
-            commentsCount - 1,
-            0
-          );
+          Math.max(commentsCount - 1, 0);
 
         updateCount(newCount);
       } else {
         toast.error(
-          data.message ||
-            "Unable to delete comment"
+          data.message || "Unable to delete comment"
         );
       }
     } catch (error) {
@@ -185,14 +174,21 @@ const Comments = ({
     }
   };
 
+  // Check whether this comment belongs to current user
   const isMyComment = (comment) => {
-    if (!comment?.user) {
+    if (!comment?.user?.id || !user?.id) {
       return false;
     }
 
-    return (
-      comment.user.id 
-    );
+    return comment.user.id === user.id;
+  };
+
+  const openProfile = (userId) => {
+    if (!userId) {
+      return;
+    }
+
+    navigate(`/profile/${userId}`);
   };
 
   return (
@@ -242,10 +238,7 @@ const Comments = ({
         className="flex items-center gap-2"
       >
         <img
-          src={
-            user?.imageUrl 
-  
-          }
+          src={user?.imageUrl || "/image.png"}
           alt="Profile"
           className="
             w-9
@@ -299,9 +292,7 @@ const Comments = ({
             transition
           "
         >
-          {commentSubmitting
-            ? "..."
-            : "Post"}
+          {commentSubmitting ? "..." : "Post"}
         </button>
       </form>
 
@@ -326,15 +317,17 @@ const Comments = ({
                 p-3
               "
             >
+              {/* Comment Profile Picture */}
               <img
                 src={
-                  comment.user
-                    ?.profile_picture 
-                
+                  comment.user?.profile_picture ||
+                  "/image.png"
                 }
                 alt={
-                  comment.user
-                    ?.username || ""
+                  comment.user?.username || ""
+                }
+                onClick={() =>
+                  openProfile(comment.user?.id)
                 }
                 className="
                   w-9
@@ -342,24 +335,31 @@ const Comments = ({
                   rounded-full
                   object-cover
                   shrink-0
+                  cursor-pointer
                 "
               />
 
-              <div className="flex-1 min-w-0">
+              {/* Comment Content */}
+              <div
+                onClick={() =>
+                  openProfile(comment.user?.id)
+                }
+                className="
+                  flex-1
+                  min-w-0
+                  cursor-pointer
+                "
+              >
                 <div className="flex items-center gap-1">
                   <span className="font-semibold text-sm text-slate-900">
-                    {comment.user
-                      ?.full_name}
+                    {comment.user?.full_name}
                   </span>
 
                   <BadgeCheck className="w-3.5 h-3.5 text-[#1877F2]" />
                 </div>
 
                 <p className="text-xs text-slate-400">
-                  @
-                  {comment.user
-                    ?.username}{" "}
-                  •{" "}
+                  @{comment.user?.username} •{" "}
                   {moment(
                     comment.created_at
                   ).fromNow()}
@@ -378,14 +378,16 @@ const Comments = ({
                 </p>
               </div>
 
+              {/* Delete Only Own Comment */}
               {isMyComment(comment) && (
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleDeleteComment(
                       comment.id
-                    )
-                  }
+                    );
+                  }}
                   className="
                     p-1.5
                     text-gray-400

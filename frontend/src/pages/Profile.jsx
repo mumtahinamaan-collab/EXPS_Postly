@@ -56,6 +56,7 @@ const Profile = () => {
         setPosts(data.posts || []);
         setLikedPosts(data.liked_posts || []);
         setIsFollowing(data.is_following || false);
+   
       } else {
         toast.error(data.message);
       }

@@ -159,3 +159,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "https://postly-tau-five.vercel.app",
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "https://exps-postly.onrender.com",
+    "https://postly-tau-five.vercel.app",
+]

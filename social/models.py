@@ -7,7 +7,7 @@ from django.db import models
 # ==================================================
 class User(models.Model):
     id = models.CharField(primary_key=True, max_length=100, editable=False)
-    email = models.EmailField()
+    email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
     username = models.CharField(max_length=150, unique=True)
     bio = models.TextField(default='Hey there! I am using Postly.')
