@@ -1,6 +1,8 @@
 
 from urllib.parse import parse_qs
 
+from asgiref.sync import sync_to_async
+
 from .authentication import verify_clerk_token
 
 
@@ -25,7 +27,9 @@ class ClerkWebSocketAuthMiddleware:
         user = None
 
         if token:
-            user = verify_clerk_token(token)
+            user = await sync_to_async(
+                verify_clerk_token
+            )(token)
 
         scope["user"] = user
 
