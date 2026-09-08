@@ -12,6 +12,7 @@ import { useAuth, useUser } from "@clerk/react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import Comments from "./Comments";
+import { useNavigate } from "react-router-dom";
 
 const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
   const { getToken } = useAuth();
@@ -22,6 +23,7 @@ const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
 
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLikesCount(post.likes_count || 0);
@@ -240,10 +242,11 @@ const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
       <div className="flex items-center justify-between ">
         {/* USER */}
 
-        <div className="inline-flex items-center gap-3 cursor-pointer">
+        <div onClick={() => navigate(`/profile/${post.user?.id}`)}
+         className="inline-flex items-center gap-3 cursor-pointer">
           <div className="rounded-full">
             <img
-              src={post.user?.profile_picture || "/image.png"}
+              src={post.user?.profile_picture }
               alt={post.user?.username || ""}
               className="
                 w-10

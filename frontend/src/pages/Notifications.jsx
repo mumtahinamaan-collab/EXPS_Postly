@@ -215,9 +215,7 @@ const Notifications = () => {
         notification.post_id &&
         notification.actor?.id
       ) {
-        navigate(
-          `/profile/${notification.actor.id}?post=${notification.post_id}`,
-        );
+        navigate( `/post/${notification.post_id}` );
       }
     }
   };
@@ -227,7 +225,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6 md:px-8">
+    <div className="h-full overflow-y-auto bg-gray-50 px-4 py-6 md:px-8">
       <div className="max-w-3xl mx-auto">
 
         {/* HEADER */}
@@ -349,8 +347,8 @@ const Notifications = () => {
                             notification.actor
                               ?.full_name ||
                             notification.actor
-                              ?.username ||
-                            "U"
+                              ?.username 
+
                           )
                             .charAt(0)
                             .toUpperCase()}

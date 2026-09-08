@@ -1,6 +1,7 @@
 
 import React, { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
+import PostDetail from "./pages/PostDetail";
 
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
@@ -79,6 +80,7 @@ const App = () => {
                 path="/create-post"
                 element={<CreatePost />}
               />
+              <Route path="/post/:postId" element={<PostDetail />} />
             </Route>
           </Routes>
         </NotificationProvider>

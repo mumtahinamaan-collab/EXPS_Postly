@@ -1,8 +1,10 @@
+
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -18,6 +20,104 @@ export const NotificationProvider = ({ children }) => {
 
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const audioRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+
+  // ==================================================
+  // PREPARE NOTIFICATION SOUND
+  // ==================================================
+
+  useEffect(() => {
+    const audio = new Audio("/sounds/notification.mp3");
+
+    audio.preload = "auto";
+    audio.volume = 0.7;
+
+    audioRef.current = audio;
+
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current) {
+        return;
+      }
+
+      const currentAudio = audioRef.current;
+
+      if (!currentAudio) {
+        return;
+      }
+
+      currentAudio
+        .play()
+        .then(() => {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+
+          audioUnlockedRef.current = true;
+        })
+        .catch(() => {
+          // Browser may still block audio.
+        });
+    };
+
+    window.addEventListener(
+      "click",
+      unlockAudio,
+      { once: true }
+    );
+
+    window.addEventListener(
+      "touchstart",
+      unlockAudio,
+      { once: true }
+    );
+
+    window.addEventListener(
+      "keydown",
+      unlockAudio,
+      { once: true }
+    );
+
+    return () => {
+      window.removeEventListener(
+        "click",
+        unlockAudio
+      );
+
+      window.removeEventListener(
+        "touchstart",
+        unlockAudio
+      );
+
+      window.removeEventListener(
+        "keydown",
+        unlockAudio
+      );
+    };
+  }, []);
+
+  // ==================================================
+  // PLAY NOTIFICATION SOUND
+  // ==================================================
+
+  const playNotificationSound = useCallback(() => {
+    const audio = audioRef.current;
+
+    if (!audio) {
+      return;
+    }
+
+    audio.currentTime = 0;
+
+    audio
+      .play()
+      .then(() => {
+        audioUnlockedRef.current = true;
+      })
+      .catch(() => {
+        // Browser blocked audio.
+      });
+  }, []);
+
   // ==================================================
   // FETCH UNREAD COUNT
   // ==================================================
@@ -30,14 +130,19 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
 
-      const { data } = await api.get("/notifications/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { data } = await api.get(
+        "/notifications/",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (data.success) {
-        setUnreadCount(data.unread_count || 0);
+        setUnreadCount(
+          data.unread_count || 0
+        );
       }
     } catch {
       // Keep notification errors silent.
@@ -60,26 +165,35 @@ export const NotificationProvider = ({ children }) => {
           return;
         }
 
-        const apiBaseUrl = import.meta.env.VITE_BASEURL;
+        const apiBaseUrl =
+          import.meta.env.VITE_BASEURL;
 
         const httpUrl = apiBaseUrl.replace(
           /\/api\/?$/,
-          "",
+          ""
         );
 
         const wsUrl = httpUrl
-          .replace(/^https:\/\//, "wss://")
-          .replace(/^http:\/\//, "ws://");
+          .replace(
+            /^https:\/\//,
+            "wss://"
+          )
+          .replace(
+            /^http:\/\//,
+            "ws://"
+          );
 
         socket = new WebSocket(
           `${wsUrl}/ws/notifications/?token=${encodeURIComponent(
-            token,
-          )}`,
+            token
+          )}`
         );
 
         socket.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
+            const data = JSON.parse(
+              event.data
+            );
 
             if (
               data.type !== "notification" ||
@@ -88,11 +202,16 @@ export const NotificationProvider = ({ children }) => {
               return;
             }
 
-            setUnreadCount((prev) => prev + 1);
+            setUnreadCount(
+              (prev) => prev + 1
+            );
+
+            // 🔊 PLAY NOTIFICATION SOUND
+            playNotificationSound();
 
             toast.success(
               data.notification.message ||
-                "You have a new notification",
+                "You have a new notification"
             );
           } catch {
             // Ignore invalid WebSocket messages.
@@ -116,7 +235,10 @@ export const NotificationProvider = ({ children }) => {
         socket.close();
       }
     };
-  }, [getToken]);
+  }, [
+    getToken,
+    playNotificationSound,
+  ]);
 
   // ==================================================
   // INITIAL COUNT
@@ -130,9 +252,13 @@ export const NotificationProvider = ({ children }) => {
   // MARK AS READ
   // ==================================================
 
-  const decreaseUnreadCount = useCallback(() => {
-    setUnreadCount((prev) => Math.max(prev - 1, 0));
-  }, []);
+  const decreaseUnreadCount =
+    useCallback(() => {
+      setUnreadCount(
+        (prev) =>
+          Math.max(prev - 1, 0)
+      );
+    }, []);
 
   return (
     <NotificationContext.Provider
@@ -149,13 +275,15 @@ export const NotificationProvider = ({ children }) => {
 };
 
 export const useNotifications = () => {
-  const context = useContext(NotificationContext);
+  const context =
+    useContext(NotificationContext);
 
   if (!context) {
     throw new Error(
-      "useNotifications must be used inside NotificationProvider",
+      "useNotifications must be used inside NotificationProvider"
     );
   }
 
   return context;
 };
+

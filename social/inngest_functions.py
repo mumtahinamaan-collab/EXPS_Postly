@@ -29,7 +29,7 @@ def sync_user_creation(data):
 
     email = email_addresses[0]["email_address"]
 
-    username = email.split("@")[0]
+    username = data.get("username") or ""
 
     if User.objects.filter(username=username).exists():
         username = f"{username}_{clerk_id[-6:]}"
@@ -101,6 +101,7 @@ async def sync_user_updation(ctx: inngest.Context):
             clerk_id,
             email,
             f"{first_name} {last_name}".strip(),
+            username,
         ),
     )
 
@@ -112,6 +113,7 @@ def update_user_data(clerk_id, email, full_name):
     updated = User.objects.filter(id=clerk_id).update(
         email=email,
         full_name=full_name,
+        username=username,
     )
 
     return {

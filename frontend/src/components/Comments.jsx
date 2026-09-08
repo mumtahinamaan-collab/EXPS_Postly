@@ -20,7 +20,7 @@ const Comments = ({
   onClose,
 }) => {
   const { getToken } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { user } = useUser();
 
   const [commentText, setCommentText] =
     useState("");
@@ -186,14 +186,12 @@ const Comments = ({
   };
 
   const isMyComment = (comment) => {
-    if (!clerkUser || !comment?.user) {
+    if (!comment?.user) {
       return false;
     }
 
     return (
-      comment.user.id === clerkUser.id ||
-      comment.user.clerk_id ===
-        clerkUser.id
+      comment.user.id 
     );
   };
 
@@ -245,8 +243,8 @@ const Comments = ({
       >
         <img
           src={
-            clerkUser?.imageUrl ||
-            "/image.png"
+            user?.imageUrl 
+  
           }
           alt="Profile"
           className="
@@ -331,8 +329,8 @@ const Comments = ({
               <img
                 src={
                   comment.user
-                    ?.profile_picture ||
-                  "/image.png"
+                    ?.profile_picture 
+                
                 }
                 alt={
                   comment.user

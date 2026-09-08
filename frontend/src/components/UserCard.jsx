@@ -39,7 +39,7 @@ const UserCard = ({ user }) => {
       const token = await getToken();
 
       const { data } = await api.post(
-        "/users/follow/",
+        "/user/follow/",
         {
           id: userId,
         },
@@ -95,7 +95,7 @@ const UserCard = ({ user }) => {
       {/* PROFILE IMAGE */}
       <div className="flex justify-center">
         <img
-          src={user?.profile_picture || "/logo.png"}
+          src={user?.profile_picture }
           alt={user?.full_name || "User"}
           className="
             h-14 w-14

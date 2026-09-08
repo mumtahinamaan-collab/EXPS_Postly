@@ -2,8 +2,13 @@ import { useAuth } from "@clerk/react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate ,useSearchParams,} from "react-router-dom";
-
+import {
+  useParams,
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+import { MoreVertical, Grid3X3, Image, Heart, UserRound } from "lucide-react";
 import Loading from "../components/Loading";
 import UserProfileInfo from "../components/UserProfileInfo";
 import PostCard from "../components/PostCard";
@@ -16,12 +21,14 @@ import moment from "moment";
 const Profile = () => {
   const currentUser = useSelector((state) => state.user.value);
   const { profileId } = useParams();
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
 
   const [connectionTab, setConnectionTab] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [user, setUser] = useState(null);
+  const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [showedit, setShowEdit] = useState(false);
@@ -74,13 +81,35 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           {/* Cover Photo */}
-          <div className="h-44 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 md:h-56">
+          <div className="relative h-44 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 md:h-56">
             {user.cover_photo && (
               <img
                 src={user.cover_photo}
                 alt=""
                 className="h-full w-full object-cover"
               />
+            )}
+
+            {isOwnProfile && (
+              <div className="absolute right-3 top-3 z-20 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutMenu((prev) => !prev)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-md"
+                >
+                  <MoreVertical className="h-5 w-5 text-gray-700" />
+                </button>
+
+                {showLogoutMenu && (
+                  <button
+                    type="button"
+                    onClick={() => signOut()}
+                    className="absolute right-0 top-11 whitespace-nowrap rounded-lg bg-white px-4 py-2 text-sm font-medium text-red-500 shadow-lg"
+                  >
+                    Logout
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -100,7 +129,7 @@ const Profile = () => {
         <div className="mt-4 sm:mt-6">
           <div className="w-full overflow-x-auto scrollbar-hide">
             <div className="flex min-w-full rounded-t-xl border-b border-gray-200 bg-white">
-              {["posts", "media", "liked", "about"].map((tab) => (
+              {["post", "media", "liked", "about"].map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -111,7 +140,10 @@ const Profile = () => {
                       : "text-gray-500 hover:text-[#1877F2] hover:bg-blue-50/50"
                   }`}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab === "post" && <Grid3X3 className="h-5 w-5" />}
+                  {tab === "media" && <Image className="h-5 w-5" />}
+                  {tab === "liked" && <Heart className="h-5 w-5" />}
+                  {tab === "about" && <UserRound className="h-5 w-5" />}
                 </button>
               ))}
             </div>
@@ -124,7 +156,7 @@ const Profile = () => {
               {!profileId && (
                 <div className="mt-4 w-full flex gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:mt-6 sm:p-6">
                   <img
-                    src={user?.profile_picture || "/image.png"}
+                    src={user?.profile_picture}
                     alt=""
                     className="h-10 w-10 shrink-0 rounded-full object-cover sm:h-11 sm:w-11"
                   />
@@ -162,7 +194,6 @@ const Profile = () => {
                         setPosts((prevPosts) =>
                           prevPosts.map((item) =>
                             item.id === updatedPost.id ? updatedPost : item,
-
                           ),
                         );
                       }}

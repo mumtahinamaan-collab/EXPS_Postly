@@ -373,8 +373,7 @@ const FollowersFollowing = ({
                   <div className="shrink-0">
                     <img
                       src={
-                        person?.profile_picture ||
-                        "/image.png"
+                        person?.profile_picture 
                       }
                       alt={
                         person?.full_name ||
