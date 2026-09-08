@@ -206,9 +206,11 @@ const UserProfileInfo = ({
           <img
   src={
     user?.profile_picture
+  ? user.profile_picture
+  : "https://exps-postly.onrender.com/media/image.jpg"
   }
             alt={
-              user?.full_name || "profile"
+               user?.full_name || "profile" 
             }
             onClick={() => {
               const imageUrl = user?.profile_picture 
