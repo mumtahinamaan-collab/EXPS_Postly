@@ -35,7 +35,7 @@ from .serializers import (
 # HELPERS
 # ==================================================
 
-def get_image_url(image):
+def get_image_url(image, default_profile=True):
 
     DEFAULT_PROFILE_PICTURE = (
         "https://ik.imagekit.io/mumtahina/"
@@ -43,7 +43,7 @@ def get_image_url(image):
     )
 
     if not image:
-        return DEFAULT_PROFILE_PICTURE
+        return DEFAULT_PROFILE_PICTURE if default_profile else None
 
     image_value = str(image)
 
@@ -58,6 +58,7 @@ def get_image_url(image):
 
     except (ValueError, AttributeError):
         return image_value
+
 
 # ==================================================
 # SERIALIZER HELPERS
@@ -96,7 +97,9 @@ def serialize_post(post, request):
         )
 
         data["user"]["cover_photo"] = get_image_url(
-            post.user.cover_photo
+            post.user.cover_photo,
+            default_profile=False
+
         )
 
     return data
@@ -113,7 +116,8 @@ def serialize_comment(comment):
         )
 
         data["user"]["cover_photo"] = get_image_url(
-            comment.user.cover_photo
+            comment.user.cover_photo,
+            default_profile=False
         )
 
     return data
@@ -158,7 +162,8 @@ def create_notification(
                 actor.profile_picture
             ),
             "cover_photo": get_image_url(
-                actor.cover_photo
+                actor.cover_photo,
+                default_profile=False
             ),
         },
         "post_id": post.id if post else None,
@@ -1423,7 +1428,10 @@ def get_notifications(request):
                 notification.actor.profile_picture
             )
             item["actor"]["cover_photo"] = get_image_url(
-                notification.actor.cover_photo
+                notification.actor,
+                default_profile=False
+                
+
             )
 
     unread_count = notifications.filter(is_read=False).count()
