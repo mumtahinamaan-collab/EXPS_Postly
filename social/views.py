@@ -1,5 +1,7 @@
 
 from django.db.models import Count, Q
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from rest_framework.decorators import (
     api_view,
@@ -18,7 +20,6 @@ from .models import (
     User,
     Post,
     Comment,
-    Message,
     Notification,
 )
 from .serializers import (
@@ -125,12 +126,11 @@ def create_notification(
     message="",
     post=None,
 ):
-
     # Do not notify yourself
     if recipient.id == actor.id:
         return
 
-    Notification.objects.create(
+    notification = Notification.objects.create(
         recipient=recipient,
         actor=actor,
         notification_type=notification_type,
@@ -138,6 +138,35 @@ def create_notification(
         post=post,
     )
 
+    channel_layer = get_channel_layer()
+
+    notification_data = {
+        "id": notification.id,
+        "notification_type": notification.notification_type,
+        "message": notification.message,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at.isoformat(),
+        "actor": {
+            "id": str(actor.id),
+            "username": actor.username,
+            "full_name": actor.full_name,
+            "profile_picture": get_image_url(
+                actor.profile_picture
+            ),
+            "cover_photo": get_image_url(
+                actor.cover_photo
+            ),
+        },
+        "post_id": post.id if post else None,
+    }
+
+    async_to_sync(channel_layer.group_send)(
+        f"notifications_{recipient.id}",
+        {
+            "type": "notification_message",
+            "notification": notification_data,
+        },
+    )
 
 # ==================================================
 # 1. CURRENT USER
@@ -1360,374 +1389,49 @@ def post_comments(request, post_id):
 
 
 # ==================================================
-# 13. CHAT IMAGE UPLOAD
-# POST /api/chat/upload-image/
-# ==================================================
-
-@api_view(["POST"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])
-def upload_chat_image(request):
-
-    image = request.FILES.get(
-        "image"
-    )
-
-    if not image:
-
-        return Response(
-            {
-                "success": False,
-                "message": "Image is required.",
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    try:
-
-        upload = imagekit.files.upload(
-            file=image.read(),
-            file_name=image.name,
-            folder="/postly/chat_images",
-        )
-
-        media_url = upload.url
-
-        return Response({
-
-            "success": True,
-
-            "message_type": "image",
-
-            "media_url": media_url,
-        })
-
-    except Exception:
-
-        return Response(
-            {
-                "success": False,
-                "message": "Image upload failed.",
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-# ==================================================
-# 14. GET CHAT MESSAGES
-# POST /api/chat/messages/
-# ==================================================
-
-@api_view(["POST"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def get_chat_messages(request):
-
-    user = request.user
-
-    to_user_id = request.data.get(
-        "to_user_id"
-    )
-
-    if not to_user_id:
-
-        return Response(
-            {
-                "success": False,
-                "message": "User id is required.",
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # ----------------------------------------------
-    # GET OTHER USER
-    # ----------------------------------------------
-
-    try:
-
-        other_user = User.objects.get(
-            id=to_user_id
-        )
-
-    except User.DoesNotExist:
-
-        return Response(
-            {
-                "success": False,
-                "message": "User not found.",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    # ----------------------------------------------
-    # GET CHAT MESSAGES
-    # ----------------------------------------------
-
-    messages = (
-        Message.objects
-        .filter(
-            Q(
-                from_user=user,
-                to_user=other_user
-            )
-            |
-            Q(
-                from_user=other_user,
-                to_user=user
-            )
-        )
-        .select_related(
-            "from_user",
-            "to_user"
-        )
-        .order_by("created_at")
-    )
-
-    # ----------------------------------------------
-    # MARK RECEIVED MESSAGES AS SEEN
-    # ----------------------------------------------
-
-    Message.objects.filter(
-        from_user=other_user,
-        to_user=user,
-        seen=False
-    ).update(
-        seen=True
-    )
-
-    # ----------------------------------------------
-    # RESPONSE
-    # ----------------------------------------------
-
-    return Response({
-
-        "success": True,
-
-        "messages": [
-
-            {
-                "id": message.id,
-
-                "from_user_id": str(
-                    message.from_user.id
-                ),
-
-                "to_user_id": str(
-                    message.to_user.id
-                ),
-
-                "text": message.text,
-
-                "message_type": (
-                    message.message_type
-                ),
-
-                "media_url": (
-                    message.media_url
-                ),
-
-                "seen": message.seen,
-
-                "created_at": (
-                    message.created_at.isoformat()
-                ),
-            }
-
-            for message in messages
-        ],
-    })
-
-
-# ==================================================
-# 15. DELETE CHAT MESSAGE
-# DELETE /api/chat/messages/<message_id>/delete/
-# ==================================================
-
-@api_view(["DELETE"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def delete_chat_message(request, message_id):
-
-    user = request.user
-
-    # ----------------------------------------------
-    # GET MESSAGE
-    # ----------------------------------------------
-
-    try:
-
-        message = Message.objects.get(
-            id=message_id
-        )
-
-    except Message.DoesNotExist:
-
-        return Response(
-            {
-                "success": False,
-                "message": "Message not found.",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    # ----------------------------------------------
-    # ONLY MESSAGE OWNER CAN DELETE
-    # ----------------------------------------------
-
-    if str(message.from_user.id) != str(user.id):
-
-        return Response(
-            {
-                "success": False,
-                "message": (
-                    "You can only delete "
-                    "your own message."
-                ),
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
-    # ----------------------------------------------
-    # DELETE MESSAGE
-    # ----------------------------------------------
-
-    message.delete()
-
-    return Response({
-
-        "success": True,
-
-        "message": (
-            "Message deleted successfully."
-        ),
-    })
-
-
-# ==================================================
-# 16. GET NOTIFICATIONS
+# 13. GET NOTIFICATIONS
 # GET /api/notifications/
 # ==================================================
+
 
 @api_view(["GET"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
 def get_notifications(request):
-
     notifications = (
         Notification.objects
-        .filter(
-            recipient=request.user
-        )
-        .select_related(
-            "actor",
-            "recipient",
-            "post",
-        )
+        .filter(recipient=request.user)
+        .select_related("actor", "recipient", "post")
         .order_by("-created_at")
     )
 
     serializer = NotificationSerializer(
         notifications,
         many=True,
-        context={
-            "request": request
-        },
+        context={"request": request},
     )
 
-    unread_count = (
-        notifications
-        .filter(is_read=False)
-        .count()
-    )
+    notification_data = serializer.data
+
+    for item, notification in zip(notification_data, notifications):
+        if item.get("actor"):
+            item["actor"]["profile_picture"] = get_image_url(
+                notification.actor.profile_picture
+            )
+            item["actor"]["cover_photo"] = get_image_url(
+                notification.actor.cover_photo
+            )
+
+    unread_count = notifications.filter(is_read=False).count()
 
     return Response({
-
         "success": True,
-
-        "notifications": serializer.data,
-
+        "notifications": notification_data,
         "unread_count": unread_count,
     })
 
-
 # ==================================================
-# 17. MARK ONE NOTIFICATION AS READ
-# PATCH /api/notifications/<notification_id>/read/
-# ==================================================
-
-@api_view(["PATCH"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def mark_notification_read(
-    request,
-    notification_id
-):
-
-    try:
-
-        notification = Notification.objects.get(
-            id=notification_id,
-            recipient=request.user,
-        )
-
-    except Notification.DoesNotExist:
-
-        return Response(
-            {
-                "success": False,
-                "message": "Notification not found.",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    notification.is_read = True
-
-    notification.save(
-        update_fields=[
-            "is_read"
-        ]
-    )
-
-    return Response({
-
-        "success": True,
-
-        "message": (
-            "Notification marked as read."
-        ),
-    })
-
-
-# ==================================================
-# 18. MARK ALL NOTIFICATIONS AS READ
-# PATCH /api/notifications/read-all/
-# ==================================================
-
-@api_view(["PATCH"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def mark_all_notifications_read(request):
-
-    Notification.objects.filter(
-        recipient=request.user,
-        is_read=False,
-    ).update(
-        is_read=True
-    )
-
-    return Response({
-
-        "success": True,
-
-        "message": (
-            "All notifications marked as read."
-        ),
-    })
-
-
-# ==================================================
-# 19. DELETE ONE NOTIFICATION
+# 14. DELETE ONE NOTIFICATION
 # DELETE /api/notifications/<notification_id>/
 # ==================================================
 
@@ -1769,169 +1473,37 @@ def delete_notification(
 
 
 # ==================================================
-# 20. DELETE ALL NOTIFICATIONS
-# DELETE /api/notifications/delete-all/
+# MARK ONE NOTIFICATION AS READ
+# PATCH /api/notifications/<notification_id>/read/
 # ==================================================
 
-@api_view(["DELETE"])
+@api_view(["PATCH"])
 @authentication_classes([ClerkAuthentication])
 @permission_classes([IsAuthenticated])
-def delete_all_notifications(request):
+def mark_notification_read(request, notification_id):
 
-    Notification.objects.filter(
-        recipient=request.user
-    ).delete()
-
-    return Response({
-
-        "success": True,
-
-        "message": (
-            "All notifications deleted successfully."
-        ),
-    })
-
-
-# ==================================================
-# CHAT LIST
-# GET /api/chat/list/
-# ==================================================
-
-@api_view(["GET"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def chat_list(request):
-
-    user = request.user
-
-    # --------------------------------------------------
-    # Get all messages involving current user
-    # --------------------------------------------------
-
-    messages = (
-        Message.objects
-        .filter(
-            Q(from_user=user) |
-            Q(to_user=user)
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            recipient=request.user,
         )
-        .select_related(
-            "from_user",
-            "to_user",
+
+    except Notification.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Notification not found.",
+            },
+            status=status.HTTP_404_NOT_FOUND,
         )
-        .order_by("-created_at")
-    )
 
-    # --------------------------------------------------
-    # Keep only latest message for each conversation
-    # --------------------------------------------------
-
-    conversations = {}
-
-    for message in messages:
-
-        if message.from_user_id == user.id:
-            other_user = message.to_user
-        else:
-            other_user = message.from_user
-
-        other_user_id = str(other_user.id)
-
-        # Because messages are ordered newest first,
-        # first message we find is the latest message.
-        if other_user_id not in conversations:
-
-            unread_count = Message.objects.filter(
-                from_user=other_user,
-                to_user=user,
-                seen=False,
-            ).count()
-
-            conversations[other_user_id] = {
-                "user": other_user,
-                "last_message": message,
-                "unread_count": unread_count,
-            }
-
-    # --------------------------------------------------
-    # Build response
-    # --------------------------------------------------
-
-    chat_data = []
-
-    for conversation in conversations.values():
-
-        other_user = conversation["user"]
-        last_message = conversation["last_message"]
-
-        chat_data.append({
-            "user": UserSerializer(
-                other_user
-            ).data,
-
-            "last_message": last_message.text,
-
-            "last_message_type": (
-                last_message.message_type
-            ),
-
-            "last_message_media_url": (
-                last_message.media_url
-            ),
-
-            "last_message_seen": (
-                last_message.seen
-            ),
-
-            "last_message_from_me": (
-                last_message.from_user_id == user.id
-            ),
-
-            "last_message_time": (
-                last_message.created_at
-            ),
-
-            "unread_count": (
-                conversation["unread_count"]
-            ),
-        })
-
-    # --------------------------------------------------
-    # Fix profile/cover image URLs
-    # --------------------------------------------------
-
-    for item in chat_data:
-
-        chat_user = item["user"]
-
-        try:
-            user_object = User.objects.get(
-                id=chat_user["id"]
-            )
-
-            chat_user["profile_picture"] = get_image_url(
-                user_object.profile_picture
-            )
-
-            chat_user["cover_photo"] = get_image_url(
-                user_object.cover_photo
-            )
-
-        except User.DoesNotExist:
-            pass
-
-    # --------------------------------------------------
-    # Return response
-    # --------------------------------------------------
+    notification.is_read = True
+    notification.save(update_fields=["is_read"])
 
     return Response({
         "success": True,
-        "chats": chat_data,
+        "message": "Notification marked as read.",
+        "notification_id": notification.id,
+        "is_read": notification.is_read,
     })
-
-
-
-
-
-
-
 

@@ -374,7 +374,7 @@ const FollowersFollowing = ({
                     <img
                       src={
                         person?.profile_picture ||
-                        "/logo.png"
+                        "/image.png"
                       }
                       alt={
                         person?.full_name ||

@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   UserPlus,
   UserCheck,
-  MessageCircle,
   Share2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -67,13 +66,7 @@ const UserProfileInfo = ({
   }
 };
 
-  const handleMessage = (e) => {
-    e.stopPropagation();
 
-    if (!userId) return;
-
-    navigate(`/messages/${userId}`);
-  };
 
   const handleShare = async (e) => {
     e.stopPropagation();
@@ -140,15 +133,6 @@ const UserProfileInfo = ({
           >
             <UserCheck className="h-3.5 w-3.5" />
             Following
-          </button>
-
-          <button
-            type="button"
-            title="Message"
-            onClick={handleMessage}
-            className="flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-[#1877F2] hover:bg-blue-50 hover:text-[#1877F2] active:scale-95 cursor-pointer"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
           </button>
 
           <button

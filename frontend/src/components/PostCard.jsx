@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BadgeCheck,
   Heart,
@@ -13,7 +13,7 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import Comments from "./Comments";
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, onPostUpdated }) => {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
 
@@ -22,6 +22,12 @@ const PostCard = ({ post }) => {
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
 
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+
+  useEffect(() => {
+    setLikesCount(post.likes_count || 0);
+    setIsLiked(post.is_liked || false);
+    setCommentsCount(post.comments_count || 0);
+  }, [post.id, post.likes_count, post.is_liked, post.comments_count]);
 
   const [showComments, setShowComments] = useState(false);
 
@@ -71,8 +77,12 @@ const PostCard = ({ post }) => {
       if (data.success) {
         setIsLiked(data.liked);
         setLikesCount(data.likes_count);
-      } else {
-        toast.error(data.message || "Unable to like post");
+
+        onPostUpdated?.({
+          ...post,
+          is_liked: data.liked,
+          likes_count: data.likes_count,
+        });
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to like post");
@@ -122,7 +132,15 @@ const PostCard = ({ post }) => {
       if (data.success) {
         setComments(data.comments || []);
 
-        setCommentsCount(data.comments_count ?? data.comments?.length ?? 0);
+        const newCommentsCount =
+          data.comments_count ?? data.comments?.length ?? 0;
+
+        setCommentsCount(newCommentsCount);
+
+        onPostUpdated?.({
+          ...post,
+          comments_count: newCommentsCount,
+        });
       } else {
         toast.error(data.message || "Unable to load comments");
       }
@@ -202,7 +220,7 @@ const PostCard = ({ post }) => {
         <div className="inline-flex items-center gap-3 cursor-pointer">
           <div className="rounded-full">
             <img
-              src={post.user?.profile_picture || "/logo.png"}
+              src={post.user?.profile_picture || "/image.png"}
               alt={post.user?.username || ""}
               className="
                 w-10
@@ -311,6 +329,9 @@ const PostCard = ({ post }) => {
             text-sm
             whitespace-pre-line
             leading-6
+            rounded-lg
+            p-6
+            px-4
           "
           style={{
             backgroundColor: post.background_color,

@@ -18,22 +18,24 @@ const CreatePost = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const bgColors = [
-    "#6b7280",
-    "#9ca3af",
-    "#1e40af",
-    "#4f46e5",
-    "#6d28d9",
-    "#7c3aed",
-    "#be185d",
-    "#db2777",
-    "#b91c1c",
-    "#e11d48",
-    "#a16207",
-    "#ca8a04",
-    "#0f766e",
-    "#0d9488",
-  ];
+const bgColors = [
+  "#F3F4F6", // Light Gray
+  "#DBEAFE", // Light Blue
+  "#E0E7FF", // Light Indigo
+  "#EDE9FE", // Light Purple
+  "#FCE7F3", // Light Pink
+  "#FFE4E6", // Light Rose
+  "#FEE2E2", // Light Red
+  "#FEF3C7", // Light Yellow
+  "#FFEDD5", // Light Orange
+  "#CCFBF1", // Light Teal
+  "#CFFAFE", // Light Cyan
+  "#DCFCE7", // Light Green
+  "#ECFCCB", // Light Lime
+  "#F3E8FF", // Light Violet
+];
+
+
 
   const [background, setBackground] = useState(bgColors[0]);
 
@@ -156,7 +158,7 @@ const CreatePost = () => {
 
           {/* Text */}
           <textarea
-            className="w-full resize-none min-h-32 max-h-40 text-sm outline-none rounded-xl p-4 transition text-white placeholder-white/60"
+            className="w-full resize-none min-h-32 max-h-40 text-sm outline-none rounded-xl p-4 transition text-black placeholder-black-500"
             style={{ backgroundColor: background }}
             placeholder="What's happening?"
             onChange={(e) => setContent(e.target.value)}

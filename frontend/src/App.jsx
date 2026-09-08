@@ -2,7 +2,6 @@ import React,{useEffect} from "react";
 import { Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
-import Messages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
 import Discover from "./pages/Discover";
 import Profile from "./pages/Profile";
@@ -38,9 +37,7 @@ const App = () => {
         <Route path="/" element={!user ? <Login /> : <Layout />}>
           <Route index element={<Feed />} />
 
-          <Route path="/messages" element={<Messages />} />
 
-          <Route path="/messages/:userId" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
 
           <Route path="/discover" element={<Discover />} />

@@ -139,65 +139,13 @@ class Comment(models.Model):
         db_table = 'comments'
         ordering = ['created_at']
 
-class Message(models.Model):
-    from_user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="sent_messages"
-    )
-
-    to_user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="received_messages"
-    )
-
-    text = models.TextField(
-        blank=True,
-        null=True
-    )
-
-    message_type = models.CharField(
-        max_length=20,
-        choices=[
-            ("text", "Text"),
-            ("image", "Image"),
-        ],
-        default="text"
-    )
-
-    media_url = models.URLField(
-        blank=True,
-        null=True
-    )
-
-    seen = models.BooleanField(
-        default=False
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
-
-    def __str__(self):
-        return f"{self.from_user.username} → {self.to_user.username}"
-
-    class Meta:
-        db_table = "messages"
-        ordering = ["created_at"]
-
-
 class Notification(models.Model):
 
     NOTIFICATION_TYPES = (
         ("follow", "Follow"),
         ("like", "Like"),
         ("comment", "Comment"),
-        ("message", "Message"),
+     
     )
 
     recipient = models.ForeignKey(

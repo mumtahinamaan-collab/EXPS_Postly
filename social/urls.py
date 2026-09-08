@@ -23,21 +23,12 @@ from .views import (
     post_comments,
 
     # ==============================================
-    # CHAT
-    # ==============================================
-    upload_chat_image,
-    get_chat_messages,
-    chat_list,
-    delete_chat_message,
-
-    # ==============================================
     # NOTIFICATIONS
     # ==============================================
     get_notifications,
     mark_notification_read,
-    mark_all_notifications_read,
     delete_notification,
-    delete_all_notifications,
+
 )
 
 
@@ -126,35 +117,6 @@ urlpatterns = [
 
 
     # ==================================================
-    # CHAT
-    # ==================================================
-
-    path(
-        "chat/list/",
-        chat_list,
-        name="chat-list",
-    ),
-
-    path(
-        "chat/upload-image/",
-        upload_chat_image,
-        name="upload-chat-image",
-    ),
-
-    path(
-        "chat/messages/",
-        get_chat_messages,
-        name="get-chat-messages",
-    ),
-
-    path(
-        "chat/messages/<int:message_id>/delete/",
-        delete_chat_message,
-        name="delete-chat-message",
-    ),
-
-
-    # ==================================================
     # NOTIFICATIONS
     # ==================================================
 
@@ -171,21 +133,11 @@ urlpatterns = [
     ),
 
     path(
-        "notifications/read-all/",
-        mark_all_notifications_read,
-        name="mark-all-notifications-read",
-    ),
-
-    path(
         "notifications/<int:notification_id>/",
         delete_notification,
         name="delete-notification",
     ),
 
-    path(
-        "notifications/delete-all/",
-        delete_all_notifications,
-        name="delete-all-notifications",
-    ),
+
 ]
 

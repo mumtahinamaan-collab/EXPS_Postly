@@ -4,7 +4,6 @@ from .models import (
     User,
     Post,
     Comment,
-    Message,
     Notification,
 )
 
@@ -114,38 +113,6 @@ class CommentAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
-@admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
-
-    list_display = (
-        "id",
-        "from_user",
-        "to_user",
-        "message_type",
-        "text",
-        "seen",
-        "created_at",
-        "updated_at",
-    )
-
-    search_fields = (
-        "from_user__username",
-        "from_user__email",
-        "to_user__username",
-        "to_user__email",
-        "text",
-    )
-
-    list_filter = (
-        "message_type",
-        "seen",
-        "created_at",
-    )
-
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-    )
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -156,7 +123,6 @@ class NotificationAdmin(admin.ModelAdmin):
         "actor",
         "notification_type",
         "post",
-        "message",
         "is_read",
         "created_at",
     )
@@ -166,7 +132,7 @@ class NotificationAdmin(admin.ModelAdmin):
         "recipient__email",
         "actor__username",
         "actor__email",
-        "message",
+    
     )
 
     list_filter = (

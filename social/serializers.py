@@ -5,7 +5,7 @@ from .models import (
     User,
     Post,
     Comment,
-    Message,
+  
     Notification,
 )
 
@@ -149,48 +149,6 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-
-# ==================================================
-# MESSAGE SERIALIZER
-# ==================================================
-
-class MessageSerializer(serializers.ModelSerializer):
-
-    from_user_id = serializers.CharField(
-        source="from_user.id",
-        read_only=True,
-    )
-
-    to_user_id = serializers.CharField(
-        source="to_user.id",
-        read_only=True,
-    )
-
-    class Meta:
-        model = Message
-
-        fields = [
-            "id",
-            "from_user_id",
-            "to_user_id",
-            "text",
-            "message_type",
-            "media_url",
-            "seen",
-            "created_at",
-            "updated_at",
-        ]
-
-        read_only_fields = [
-            "id",
-            "from_user_id",
-            "to_user_id",
-            "seen",
-            "created_at",
-            "updated_at",
-        ]
-
 
 # ==================================================
 # NOTIFICATION SERIALIZER
