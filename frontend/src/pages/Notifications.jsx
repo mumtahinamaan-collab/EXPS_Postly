@@ -14,24 +14,27 @@ import toast from "react-hot-toast";
 
 import api from "../api/axios";
 import Loading from "../components/Loading";
+import { useNotifications } from "../context/NotificationContext";
 
 const Notifications = () => {
   const { getToken } = useAuth();
   const navigate = useNavigate();
 
+  const {
+    decreaseUnreadCount,
+    fetchUnreadCount,
+  } = useNotifications();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // =========================
-  // FETCH NOTIFICATIONS
-  // =========================
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
 
       const token = await getToken();
+
+      if (!token) return;
 
       const { data } = await api.get("/notifications/", {
         headers: {
@@ -41,132 +44,32 @@ const Notifications = () => {
 
       if (data.success) {
         setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
       } else {
         toast.error(
-          data.message || "Unable to load notifications"
+          data.message || "Unable to load notifications",
         );
       }
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Unable to load notifications"
+          "Unable to load notifications",
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // FETCH ON PAGE LOAD
-  // =========================
-
   useEffect(() => {
     fetchNotifications();
+    fetchUnreadCount();
   }, []);
 
-  // =========================
-  // WEBSOCKET
-  // =========================
-
-  useEffect(() => {
-    let socket;
-    let cancelled = false;
-
-    const connectWebSocket = async () => {
-      try {
-        const token = await getToken();
-
-        if (!token || cancelled) {
-          return;
-        }
-
-        const apiBaseUrl =
-          import.meta.env.VITE_BASEURL;
-
-        const httpUrl = apiBaseUrl.replace(
-          /\/api\/?$/,
-          ""
-        );
-
-        const wsUrl = httpUrl
-          .replace(/^https:\/\//, "wss://")
-          .replace(/^http:\/\//, "ws://");
-
-        socket = new WebSocket(
-          `${wsUrl}/ws/notifications/?token=${encodeURIComponent(
-            token
-          )}`
-        );
-
-        socket.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-
-            if (
-              data.type !== "notification" ||
-              !data.notification
-            ) {
-              return;
-            }
-
-            const newNotification =
-              data.notification;
-
-            setNotifications((prev) => {
-              const alreadyExists = prev.some(
-                (item) =>
-                  item.id === newNotification.id
-              );
-
-              if (alreadyExists) {
-                return prev;
-              }
-
-              return [
-                newNotification,
-                ...prev,
-              ];
-            });
-
-            setUnreadCount((prev) => prev + 1);
-
-            toast.success(
-              newNotification.message ||
-                "You have a new notification"
-            );
-          } catch {
-            // Ignore invalid WebSocket messages
-          }
-        };
-
-        socket.onerror = () => {
-          // WebSocket errors are intentionally silent.
-        };
-      } catch {
-        // WebSocket connection errors are intentionally silent.
-      }
-    };
-
-    connectWebSocket();
-
-    return () => {
-      cancelled = true;
-
-      if (socket) {
-        socket.close();
-      }
-    };
-  }, [getToken]);
-
-  // =========================
-  // MARK SINGLE AS READ
-  // =========================
+  // ==================================================
+  // MARK NOTIFICATION AS READ
+  // ==================================================
 
   const markAsRead = async (notification) => {
-    if (notification.is_read) {
-      return;
-    }
+    if (notification.is_read) return;
 
     try {
       const token = await getToken();
@@ -178,7 +81,7 @@ const Notifications = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (data.success) {
@@ -189,29 +92,31 @@ const Notifications = () => {
                   ...item,
                   is_read: true,
                 }
-              : item
-          )
+              : item,
+          ),
         );
 
-        setUnreadCount((prev) =>
-          Math.max(prev - 1, 0)
-        );
+        decreaseUnreadCount();
       }
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Unable to update notification"
+          "Unable to update notification",
       );
     }
   };
 
-  // =========================
-  // DELETE ONE NOTIFICATION
-  // =========================
+  // ==================================================
+  // DELETE NOTIFICATION
+  // ==================================================
 
   const deleteNotification = async (id) => {
     try {
       const token = await getToken();
+
+      const notificationToDelete = notifications.find(
+        (item) => item.id === id,
+      );
 
       const { data } = await api.delete(
         `/notifications/${id}/`,
@@ -219,46 +124,39 @@ const Notifications = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (data.success) {
-        const deletedNotification =
-          notifications.find(
-            (item) => item.id === id
-          );
-
         setNotifications((prev) =>
-          prev.filter((item) => item.id !== id)
+          prev.filter((item) => item.id !== id),
         );
 
         if (
-          deletedNotification &&
-          !deletedNotification.is_read
+          notificationToDelete &&
+          !notificationToDelete.is_read
         ) {
-          setUnreadCount((prev) =>
-            Math.max(prev - 1, 0)
-          );
+          decreaseUnreadCount();
         }
       }
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Unable to delete notification"
+          "Unable to delete notification",
       );
     }
   };
 
-  // =========================
-  // TIME
-  // =========================
+  // ==================================================
+  // FORMAT TIME
+  // ==================================================
 
   const formatTime = (date) => {
     const created = new Date(date);
     const now = new Date();
 
     const seconds = Math.floor(
-      (now - created) / 1000
+      (now - created) / 1000,
     );
 
     if (seconds < 60) {
@@ -286,45 +184,43 @@ const Notifications = () => {
     return created.toLocaleDateString();
   };
 
-  // =========================
+  // ==================================================
   // NOTIFICATION CLICK
-  // =========================
+  // ==================================================
 
   const handleNotificationClick = async (
-    notification
+    notification,
   ) => {
-    const type =
-      notification.notification_type;
+    const type = notification.notification_type;
 
     await markAsRead(notification);
 
-    // FOLLOW → PROFILE
+    // FOLLOW
     if (type === "follow") {
       if (notification.actor?.id) {
         navigate(
-          `/profile/${notification.actor.id}`
+          `/profile/${notification.actor.id}`,
         );
       }
 
       return;
     }
 
-    // LIKE / COMMENT → POST
+    // LIKE / COMMENT
     if (
       type === "like" ||
       type === "comment"
     ) {
-      if (notification.post_id) {
+      if (
+        notification.post_id &&
+        notification.actor?.id
+      ) {
         navigate(
-          `/post/${notification.post_id}`
+          `/profile/${notification.actor.id}?post=${notification.post_id}`,
         );
       }
     }
   };
-
-  // =========================
-  // LOADING
-  // =========================
 
   if (loading) {
     return <Loading />;
@@ -334,10 +230,8 @@ const Notifications = () => {
     <div className="min-h-screen bg-gray-50 px-4 py-6 md:px-8">
       <div className="max-w-3xl mx-auto">
 
-        {/* ================= HEADER ================= */}
-
+        {/* HEADER */}
         <div className="flex items-center gap-3 mb-6">
-
           <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center">
             <Bell
               size={21}
@@ -354,17 +248,13 @@ const Notifications = () => {
               Stay updated with your activity
             </p>
           </div>
-
         </div>
 
-        {/* ================= LIST ================= */}
-
+        {/* NOTIFICATIONS */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
 
           {notifications.length === 0 ? (
-
             <div className="py-20 flex flex-col items-center justify-center">
-
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                 <Bell
                   size={28}
@@ -380,13 +270,9 @@ const Notifications = () => {
                 When someone interacts with you,
                 you'll see it here.
               </p>
-
             </div>
-
           ) : (
-
             notifications.map((notification) => {
-
               const type =
                 notification.notification_type;
 
@@ -394,9 +280,13 @@ const Notifications = () => {
                 <div
                   key={notification.id}
                   className={`
-                    group flex items-center gap-3
+                    group
+                    flex
+                    items-center
+                    gap-3
                     p-4
-                    border-b border-gray-100
+                    border-b
+                    border-gray-100
                     last:border-b-0
                     transition
                     ${
@@ -407,23 +297,19 @@ const Notifications = () => {
                     hover:bg-gray-50
                   `}
                 >
-
-                  {/* ================= PROFILE + ICON ================= */}
-
+                  {/* PROFILE IMAGE */}
                   <div className="relative shrink-0">
-
                     <button
+                      type="button"
                       onClick={() =>
                         handleNotificationClick(
-                          notification
+                          notification,
                         )
                       }
                       className="block"
                     >
-
                       {notification.actor
                         ?.profile_picture ? (
-
                         <img
                           src={
                             notification.actor
@@ -436,12 +322,29 @@ const Notifications = () => {
                               ?.username ||
                             "User"
                           }
-                          className="w-11 h-11 rounded-full object-cover border border-gray-200"
+                          className="
+                            w-11
+                            h-11
+                            rounded-full
+                            object-cover
+                            border
+                            border-gray-200
+                          "
                         />
-
                       ) : (
-
-                        <div className="w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
+                        <div
+                          className="
+                            w-11
+                            h-11
+                            rounded-full
+                            bg-gray-200
+                            flex
+                            items-center
+                            justify-center
+                            text-gray-500
+                            font-semibold
+                          "
+                        >
                           {(
                             notification.actor
                               ?.full_name ||
@@ -452,19 +355,34 @@ const Notifications = () => {
                             .charAt(0)
                             .toUpperCase()}
                         </div>
-
                       )}
-
                     </button>
 
-                    {/* SMALL NOTIFICATION ICON */}
-
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm">
-
+                    {/* TYPE ICON */}
+                    <div
+                      className="
+                        absolute
+                        -bottom-1
+                        -right-1
+                        w-5
+                        h-5
+                        rounded-full
+                        bg-white
+                        border
+                        border-gray-100
+                        flex
+                        items-center
+                        justify-center
+                        shadow-sm
+                      "
+                    >
                       {type === "like" && (
                         <Heart
                           size={11}
-                          className="text-red-500 fill-red-500"
+                          className="
+                            text-red-500
+                            fill-red-500
+                          "
                         />
                       )}
 
@@ -481,33 +399,31 @@ const Notifications = () => {
                           className="text-purple-500"
                         />
                       )}
-
                     </div>
-
                   </div>
 
-                  {/* ================= CONTENT ================= */}
-
+                  {/* MESSAGE */}
                   <button
+                    type="button"
                     onClick={() =>
                       handleNotificationClick(
-                        notification
+                        notification,
                       )
                     }
-                    className="flex-1 text-left min-w-0"
+                    className="
+                      flex-1
+                      text-left
+                      min-w-0
+                    "
                   >
-
                     <p className="text-sm text-gray-800">
-
                       <span className="font-semibold">
                         {notification.actor
                           ?.username ||
                           notification.actor
                             ?.full_name ||
                           "Someone"}
-                      </span>
-
-                      {" "}
+                      </span>{" "}
 
                       {type === "follow" &&
                         "started following you."}
@@ -517,51 +433,62 @@ const Notifications = () => {
 
                       {type === "comment" &&
                         "commented on your post."}
-
                     </p>
 
                     <p className="text-xs text-gray-400 mt-1">
                       {formatTime(
-                        notification.created_at
+                        notification.created_at,
                       )}
                     </p>
-
                   </button>
 
-                  {/* ================= UNREAD DOT ================= */}
-
+                  {/* UNREAD DOT */}
                   {!notification.is_read && (
-                    <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                    <div
+                      className="
+                        w-2
+                        h-2
+                        rounded-full
+                        bg-purple-500
+                        shrink-0
+                      "
+                    />
                   )}
 
-                  {/* ================= DELETE ================= */}
-
+                  {/* DELETE */}
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
 
                       deleteNotification(
-                        notification.id
+                        notification.id,
                       );
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-red-50 transition shrink-0"
+                    className="
+                      opacity-0
+                      group-hover:opacity-100
+                      p-2
+                      rounded-full
+                      hover:bg-red-50
+                      transition
+                      shrink-0
+                    "
                     title="Delete"
                   >
-
                     <Trash2
                       size={17}
-                      className="text-gray-400 hover:text-red-500"
+                      className="
+                        text-gray-400
+                        hover:text-red-500
+                      "
                     />
-
                   </button>
-
                 </div>
               );
             })
           )}
-
         </div>
-
       </div>
     </div>
   );

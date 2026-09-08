@@ -4,7 +4,6 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import Menu from "./Menu";
 import { CirclePlus, LogOut } from "lucide-react";
 import { UserButton, useClerk } from "@clerk/react";
-import { dummyUserData } from "../assets/dummyData";
 import { useSelector } from "react-redux";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {

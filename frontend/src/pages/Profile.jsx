@@ -2,7 +2,7 @@ import { useAuth } from "@clerk/react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate ,useSearchParams,} from "react-router-dom";
 
 import Loading from "../components/Loading";
 import UserProfileInfo from "../components/UserProfileInfo";
@@ -26,6 +26,9 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("posts");
   const [showedit, setShowEdit] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
+  const [searchParams] = useSearchParams();
+
+  const postId = searchParams.get("post");
 
   const navigate = useNavigate();
 
@@ -89,6 +92,7 @@ const Profile = () => {
             setShowEdit={setShowEdit}
             onConnectionClick={(tab) => setConnectionTab(tab)}
             isOwnProfile={isOwnProfile}
+            isFollowing={isFollowing}
           />
         </div>
 
@@ -153,10 +157,12 @@ const Profile = () => {
                     <PostCard
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white  sm:mt-6 sm:p-6"
                       post={post}
+                      highlightPostId={postId}
                       onPostUpdated={(updatedPost) => {
                         setPosts((prevPosts) =>
                           prevPosts.map((item) =>
                             item.id === updatedPost.id ? updatedPost : item,
+
                           ),
                         );
                       }}

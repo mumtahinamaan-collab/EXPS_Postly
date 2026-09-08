@@ -13,7 +13,7 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import Comments from "./Comments";
 
-const PostCard = ({ post, onPostUpdated }) => {
+const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
 
@@ -28,6 +28,28 @@ const PostCard = ({ post, onPostUpdated }) => {
     setIsLiked(post.is_liked || false);
     setCommentsCount(post.comments_count || 0);
   }, [post.id, post.likes_count, post.is_liked, post.comments_count]);
+
+  useEffect(() => {
+  if (
+    highlightPostId &&
+    String(post.id) === String(highlightPostId)
+  ) {
+    const timer = setTimeout(() => {
+      const postElement = document.getElementById(
+        `post-${post.id}`,
+      );
+
+      if (postElement) {
+        postElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }
+}, [highlightPostId, post.id]);
 
   const [showComments, setShowComments] = useState(false);
 
@@ -196,6 +218,7 @@ const PostCard = ({ post, onPostUpdated }) => {
 
   return (
     <div
+    id={`post-${post.id}`}
       className="
         w-full
         bg-white

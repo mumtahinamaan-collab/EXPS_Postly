@@ -1,4 +1,4 @@
-
+import React, { useState, useEffect } from "react";
 import {
   SquarePen,
   BadgeCheck,
@@ -6,10 +6,13 @@ import {
   UserCheck,
   Share2,
 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
-import React,{useState} from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@clerk/react";
+
+import api from "../api/axios";
+
 
 const UserProfileInfo = ({
   user,
@@ -17,82 +20,105 @@ const UserProfileInfo = ({
   profileId,
   setShowEdit,
   onConnectionClick,
-  onFollowUpdate,
   isOwnProfile,
+  isFollowing: initialIsFollowing,
 }) => {
   const navigate = useNavigate();
-  const userId = user?._id || user?.id;
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [isFollower, setIsFollower] = useState(false);
   const { getToken } = useAuth();
+
+  const userId = user?.id || user?._id;
+
+  const [isFollowing, setIsFollowing] = useState(
+    initialIsFollowing || false
+  );
+
+  useEffect(() => {
+    setIsFollowing(initialIsFollowing || false);
+  }, [initialIsFollowing]);
+
   const handleFollow = async (e) => {
-  e.stopPropagation();
+    e.stopPropagation();
 
-
-  if (!userId) return;
-
-  try {
-    const token = await getToken();
-
-    const { data } = await api.post(
-      "/users/follow/",
-      {
-        id: userId,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!data.success) {
-      toast.error(data.message || "Unable to update follow");
+    if (!userId) {
+      toast.error("User not found");
       return;
     }
 
-    setIsFollowing(data.following);
+    try {
+      const token = await getToken();
 
-    toast.success(
-      data.following
-        ? "Following"
-        : "Unfollowed"
-    );
-  } catch (error) {
-    toast.error(
-      error.response?.data?.message ||
-      "Unable to update follow status"
-    );
-  }
-};
+      const { data } = await api.post(
+        "/user/follow/",
+        {
+          id: userId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      if (!data.success) {
+        toast.error(
+          data.message || "Unable to update follow"
+        );
+        return;
+      }
 
+      setIsFollowing(data.following);
+
+      toast.success(
+        data.following
+          ? "Following"
+          : "Unfollowed"
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to update follow status"
+      );
+    }
+  };
 
   const handleShare = async (e) => {
     e.stopPropagation();
 
     if (!userId) return;
 
-    const profileLink = `${window.location.origin}/profile/${userId}`;
+    const profileLink =
+      `${window.location.origin}/profile/${userId}`;
 
     try {
       if (navigator.share) {
         await navigator.share({
           title: `${user?.full_name || "Profile"} on Postly`,
-          text: `Check out ${user?.full_name || "this profile"} on Postly`,
+          text: `Check out ${
+            user?.full_name || "this profile"
+          } on Postly`,
           url: profileLink,
         });
       } else {
-        await navigator.clipboard.writeText(profileLink);
+        await navigator.clipboard.writeText(
+          profileLink
+        );
+
         toast.success("Profile link copied");
       }
     } catch (error) {
       if (error?.name !== "AbortError") {
         try {
-          await navigator.clipboard.writeText(profileLink);
-          toast.success("Profile link copied");
+          await navigator.clipboard.writeText(
+            profileLink
+          );
+
+          toast.success(
+            "Profile link copied"
+          );
         } catch {
-          toast.error("Unable to share profile");
+          toast.error(
+            "Unable to share profile"
+          );
         }
       }
     }
@@ -128,44 +154,11 @@ const UserProfileInfo = ({
         <div className="flex w-full gap-2">
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleFollow}
             className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[#1877F2] px-3 text-sm font-semibold text-white transition hover:bg-[#166fe5] active:scale-95 cursor-pointer"
           >
             <UserCheck className="h-3.5 w-3.5" />
             Following
-          </button>
-
-          <button
-            type="button"
-            title="Share"
-            onClick={handleShare}
-            className="flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-[#1877F2] hover:bg-blue-50 hover:text-[#1877F2] active:scale-95 cursor-pointer"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      );
-    }
-
-    if (isFollower) {
-      return (
-        <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={handleFollow}
-            className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[#1877F2] px-3 text-sm font-semibold text-white transition hover:bg-[#166fe5] active:scale-95 cursor-pointer"
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            Follow Back
-          </button>
-
-          <button
-            type="button"
-            title="Message"
-            onClick={handleMessage}
-            className="flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-[#1877F2] hover:bg-blue-50 hover:text-[#1877F2] active:scale-95 cursor-pointer"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
           </button>
 
           <button
@@ -193,15 +186,6 @@ const UserProfileInfo = ({
 
         <button
           type="button"
-          title="Message"
-          onClick={handleMessage}
-          className="flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-[#1877F2] hover:bg-blue-50 hover:text-[#1877F2] active:scale-95 cursor-pointer"
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-        </button>
-
-        <button
-          type="button"
           title="Share"
           onClick={handleShare}
           className="flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-[#1877F2] hover:bg-blue-50 hover:text-[#1877F2] active:scale-95 cursor-pointer"
@@ -219,20 +203,26 @@ const UserProfileInfo = ({
         {/* Profile Image */}
         <div className="absolute -top-14 left-4 h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg sm:left-6 md:left-8 md:-top-16 md:h-32 md:w-32">
           <img
-            src={user?.profile_picture || "/image.png"}
-            alt={user?.full_name || "profile"}
+            src={
+              user?.profile_picture ||
+              "/image.png"
+            }
+            alt={
+              user?.full_name || "profile"
+            }
             className="h-full w-full rounded-full object-cover"
           />
         </div>
 
         <div className="w-full pt-16 md:pl-36 md:pt-0">
 
-          {/* Name + Action */}
+          {/* Name + Actions */}
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                  {user?.full_name || "No Name"}
+                  {user?.full_name ||
+                    "No Name"}
                 </h1>
 
                 <BadgeCheck className="h-5 w-5 shrink-0 text-blue-500 sm:h-6 sm:w-6" />
@@ -252,7 +242,8 @@ const UserProfileInfo = ({
 
           {/* Bio */}
           <p className="mt-4 max-w-md text-sm leading-5 text-gray-700">
-            {user?.bio || "No bio added yet."}
+            {user?.bio ||
+              "No bio added yet."}
           </p>
 
           {/* Stats */}
@@ -260,11 +251,13 @@ const UserProfileInfo = ({
 
             <button
               type="button"
-              onClick={() => onConnectionClick("Followers")}
+              onClick={() =>
+                onConnectionClick("Followers")
+              }
               className="text-left transition hover:text-[#1877F2] cursor-pointer"
             >
               <span className="text-base font-bold text-gray-900 sm:text-lg">
-                {user?.followers_count|| 0}
+                {user?.followers_count || 0}
               </span>
 
               <span className="ml-1 text-xs text-gray-500 sm:text-sm">
@@ -274,7 +267,9 @@ const UserProfileInfo = ({
 
             <button
               type="button"
-              onClick={() => onConnectionClick("Following")}
+              onClick={() =>
+                onConnectionClick("Following")
+              }
               className="text-left transition hover:text-[#1877F2] cursor-pointer"
             >
               <span className="text-base font-bold text-gray-900 sm:text-lg">
@@ -295,6 +290,7 @@ const UserProfileInfo = ({
                 Posts
               </span>
             </div>
+
           </div>
 
         </div>
@@ -304,4 +300,3 @@ const UserProfileInfo = ({
 };
 
 export default UserProfileInfo;
-
