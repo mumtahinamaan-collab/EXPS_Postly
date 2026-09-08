@@ -7,13 +7,16 @@ os.environ.setdefault(
 )
 
 from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
 
+
+# Django ko pehle initialize karo
+django_asgi_app = get_asgi_application()
+
+
+# Django initialize hone ke BAAD in imports ko load karo
+from channels.routing import ProtocolTypeRouter, URLRouter
 from social.websocket_auth import ClerkWebSocketAuthMiddleware
 from social.routing import websocket_urlpatterns
-
-
-django_asgi_app = get_asgi_application()
 
 
 application = ProtocolTypeRouter(
