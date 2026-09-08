@@ -522,9 +522,6 @@ const PostDetail = () => {
             >
               <Share2 className="w-5 h-5" />
 
-              <span>
-                Share
-              </span>
             </button>
           </div>
 

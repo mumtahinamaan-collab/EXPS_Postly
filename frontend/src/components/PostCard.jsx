@@ -477,7 +477,6 @@ const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
         >
           <Share2 className="w-4 h-4" />
 
-          <span>0</span>
         </button>
       </div>
 

@@ -206,12 +206,13 @@ const UserProfileInfo = ({
           <img
   src={
     user?.profile_picture
-      ? user.profile_picture.startsWith("http")
-        : `https://exps-postly.onrender.com${user.profile_picture}`
   }
             alt={
               user?.full_name || "profile"
             }
+            onClick={() => {
+              const imageUrl = user?.profile_picture 
+              window.open(imageUrl, "_blank")}}
             className="h-full w-full rounded-full object-cover"
           />
         </div>

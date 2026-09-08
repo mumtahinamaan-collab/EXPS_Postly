@@ -87,6 +87,9 @@ const Profile = () => {
               <img
                 src={user.cover_photo}
                 alt=""
+                            onClick={() => {
+              const imageUrl = user.cover_photo 
+              window.open(imageUrl, "_blank")}}
                 className="h-full w-full object-cover"
               />
             )}
