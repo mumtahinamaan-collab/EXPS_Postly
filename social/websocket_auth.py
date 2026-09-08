@@ -10,11 +10,17 @@ class ClerkWebSocketAuthMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        query_string = scope.get("query_string", b"").decode()
+        query_string = scope.get(
+            "query_string",
+            b"",
+        ).decode()
 
         query_params = parse_qs(query_string)
 
-        token = query_params.get("token", [None])[0]
+        token = query_params.get(
+            "token",
+            [None],
+        )[0]
 
         user = None
 
