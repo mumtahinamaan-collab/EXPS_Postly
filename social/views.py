@@ -74,7 +74,7 @@ def serialize_user(user):
     )
 
     data["cover_photo"] = get_image_url(
-        user.cover_photo
+        user.cover_photo,
         default_profile=False
     )
 
