@@ -11,8 +11,8 @@ class User(models.Model):
     full_name = models.CharField(max_length=255)
     username = models.CharField(max_length=150, unique=True)
     bio = models.TextField(default='Hey there! I am using Postly.')
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    cover_photo = models.ImageField(upload_to='cover_photos/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True,max_length=500, null=True)
+    cover_photo = models.ImageField(upload_to='cover_photos/', max_length=500,blank=True, null=True)
     location = models.CharField(max_length=255, default='', blank=True)
 
     following = models.ManyToManyField(
@@ -59,7 +59,7 @@ class Post(models.Model):
 
     image_urls = models.JSONField(
         default=list,
-        blank=True
+        blank=True,
     )
 
     post_type = models.CharField(
