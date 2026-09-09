@@ -208,7 +208,9 @@ const PostDetail = () => {
   // POST OWNER
   // ==================================================
 
-  const isMyPost =clerkUser?.id && post.user?.id === clerkUser.id;
+  const isMyPost =
+  clerkUser?.id &&
+  post?.user?.id === clerkUser.id;
 
   // ==================================================
   // LOADING
