@@ -15,17 +15,10 @@ class User(models.Model):
     cover_photo = models.ImageField(upload_to='cover_photos/', blank=True, null=True)
     location = models.CharField(max_length=255, default='', blank=True)
 
-    followers = models.ManyToManyField(
-        'self',
-        symmetrical=False,
-        related_name='followers_of',
-        blank=True
-    )
-
     following = models.ManyToManyField(
         'self',
         symmetrical=False,
-        related_name='following_of',
+        related_name='followers',
         blank=True
     )
 

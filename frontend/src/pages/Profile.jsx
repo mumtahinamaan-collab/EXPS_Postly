@@ -30,7 +30,7 @@ const Profile = () => {
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
 
   const [posts, setPosts] = useState([]);
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState("post");
   const [showedit, setShowEdit] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
   const [searchParams] = useSearchParams();
@@ -155,7 +155,7 @@ const Profile = () => {
           </div>
 
           {/* ================= POSTS ================= */}
-          {activeTab === "posts" && (
+          {activeTab === "post" && (
             <div className="mt-4 flex w-full flex-col items-center gap-4 sm:mt-6 sm:gap-5">
               {/* Create Post - Own Profile */}
               {!profileId && (

@@ -4,14 +4,12 @@ import { Pencil } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { updateUser } from "../features/users/usersSlice";
 import { useAuth } from "@clerk/react";
-import toast from "react-hot-toast";
 
 const ProfileModal = ({ setShowEdit }) => {
   const user = useSelector((state) => state.user.value);
   const dispatch = useDispatch();
   const { getToken } = useAuth();
 
-  const MAX_IMAGE_SIZE = 50 * 1024; // 50 KB
 
   const [editForm, setEditForm] = useState({
     username: user.username,
@@ -25,23 +23,8 @@ const ProfileModal = ({ setShowEdit }) => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
 
-    // Profile picture size check
-    if (
-      editForm.profile_picture &&
-      editForm.profile_picture.size > MAX_IMAGE_SIZE
-    ) {
-      toast.error("Profile picture must be 50 KB or smaller.");
-      return;
-    }
 
-    // Cover photo size check
-    if (
-      editForm.cover_photo &&
-      editForm.cover_photo.size > MAX_IMAGE_SIZE
-    ) {
-      toast.error("Cover photo must be 50 KB or smaller.");
-      return;
-    }
+
 
     const userData = new FormData();
 
@@ -79,7 +62,6 @@ const ProfileModal = ({ setShowEdit }) => {
 
       setShowEdit(false);
     } catch (error) {
-      // updateUser thunk already handles the error toast
     }
   };
 
@@ -113,14 +95,6 @@ const ProfileModal = ({ setShowEdit }) => {
 
                   if (!file) return;
 
-                  if (file.size > MAX_IMAGE_SIZE) {
-                    toast.error(
-                      "Profile picture must be 50 KB or smaller."
-                    );
-                    e.target.value = "";
-                    return;
-                  }
-
                   setEditForm({
                     ...editForm,
                     profile_picture: file,
@@ -151,9 +125,7 @@ const ProfileModal = ({ setShowEdit }) => {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-400 mt-2">
-                Maximum size: 50 KB
-              </p>
+
             </div>
 
             {/* Cover Photo */}
@@ -171,14 +143,6 @@ const ProfileModal = ({ setShowEdit }) => {
                   const file = e.target.files?.[0];
 
                   if (!file) return;
-
-                  if (file.size > MAX_IMAGE_SIZE) {
-                    toast.error(
-                      "Cover photo must be 50 KB or smaller."
-                    );
-                    e.target.value = "";
-                    return;
-                  }
 
                   setEditForm({
                     ...editForm,
@@ -213,10 +177,6 @@ const ProfileModal = ({ setShowEdit }) => {
                   </div>
                 </div>
               </label>
-
-              <p className="text-xs text-gray-400 mt-2">
-                Maximum size: 50 KB
-              </p>
             </div>
 
             {/* Full Name */}

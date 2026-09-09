@@ -1,36 +1,31 @@
 
 from django.urls import path
-
-from .views import (
-    # ==============================================
-    # USER
-    # ==============================================
+from .views.user_views import (
     get_user_data,
     update_user_data,
     get_profile,
     discover_users,
     toggle_follow,
     user_social_data,
+)
 
-    # ==============================================
-    # POSTS
-    # ==============================================
+from .views.post_views import (
     add_post,
     post_feed,
     toggle_like,
     delete_post,
     post_details,
-    post_comments,
-
-    # ==============================================
-    # NOTIFICATIONS
-    # ==============================================
-    get_notifications,
-    mark_notification_read,
-    delete_notification,
-
 )
 
+from .views.comment_views import (
+    post_comments,
+)
+
+from .views.notification_views import (
+    get_notifications,
+    delete_notification,
+    mark_notification_read,
+)
 
 urlpatterns = [
 

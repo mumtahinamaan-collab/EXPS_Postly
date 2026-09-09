@@ -208,12 +208,7 @@ const PostDetail = () => {
   // POST OWNER
   // ==================================================
 
-  const isMyPost =
-    clerkUser?.primaryEmailAddress?.emailAddress &&
-    post?.user?.email &&
-    clerkUser.primaryEmailAddress.emailAddress
-      .toLowerCase() ===
-      post.user.email.toLowerCase();
+  const isMyPost =clerkUser?.id && post.user?.id === clerkUser.id;
 
   // ==================================================
   // LOADING

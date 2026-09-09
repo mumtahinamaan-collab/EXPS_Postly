@@ -42,7 +42,6 @@ class UserAdmin(admin.ModelAdmin):
     )
 
     filter_horizontal = (
-        "followers",
         "following",
     )
 

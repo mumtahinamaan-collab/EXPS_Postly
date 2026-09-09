@@ -65,20 +65,7 @@ const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
   // POST OWNER
   // ==================================================
 
-  const isMyPost =
-    clerkUser?.primaryEmailAddress?.emailAddress &&
-    post.user?.email &&
-    clerkUser.primaryEmailAddress.emailAddress.toLowerCase() ===
-      post.user.email.toLowerCase();
-
-  // ==================================================
-  // HASHTAGS
-  // ==================================================
-
-  const postWithHashtags = (post.content || "").replace(
-    /(#\w+)/g,
-    '<span class="text-[#1877F2]">$1</span>',
-  );
+  const isMyPost =clerkUser?.id && post.user?.id === clerkUser.id;
 
   // ==================================================
   // LIKE / UNLIKE
@@ -362,11 +349,11 @@ const PostCard = ({ post, onPostUpdated,highlightPostId  }) => {
           style={{
             backgroundColor: post.background_color,
           }}
-          dangerouslySetInnerHTML={{
-            __html: postWithHashtags,
-          }}
-        />
+          >
+          {post.content}
+       </div>
       )}
+      
 
       {/* ==================================================
           IMAGES
