@@ -79,11 +79,7 @@ def serialize_post(post, request):
             post.user.profile_picture
         )
 
-        data["user"]["cover_photo"] = get_image_url(
-            post.user.cover_photo,
-            default_profile=False,
-            width=1200
-        )
+
 
     return data
 
@@ -98,9 +94,5 @@ def serialize_comment(comment):
             comment.user.profile_picture
         )
 
-        data["user"]["cover_photo"] = get_image_url(
-            comment.user.cover_photo,
-            default_profile=False
-        )
 
     return data

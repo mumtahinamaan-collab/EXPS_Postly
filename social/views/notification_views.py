@@ -40,12 +40,7 @@ def get_notifications(request):
             item["actor"]["profile_picture"] = get_image_url(
                 notification.actor.profile_picture
             )
-            item["actor"]["cover_photo"] = get_image_url(
-                notification.actor.cover_photo,
-                default_profile=False
-                
 
-            )
 
     unread_count = notifications.filter(is_read=False).count()
 
