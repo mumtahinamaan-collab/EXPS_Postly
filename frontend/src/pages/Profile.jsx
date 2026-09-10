@@ -32,6 +32,8 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("post");
   const [showedit, setShowEdit] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
 
   const navigate = useNavigate();
 
@@ -53,6 +55,8 @@ const Profile = () => {
         setPosts(data.posts || []);
         setLikedPosts(data.liked_posts || []);
         setIsFollowing(data.is_following || false);
+        setFollowers(data.followers || []);   // <-- ADD
+        setFollowing(data.following || []);
    
       } else {
         toast.error(data.message);
@@ -331,8 +335,8 @@ const Profile = () => {
           <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <FollowersFollowing
               user={user}
-              followers={user.followers}
-              following={user.following}
+              followers={followers}
+              following={following}
               initialTab={connectionTab}
               onClose={() => setConnectionTab(null)}
             />

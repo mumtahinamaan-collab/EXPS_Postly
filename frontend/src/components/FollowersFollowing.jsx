@@ -1,11 +1,5 @@
-
 import React, { useState } from "react";
-import {
-  UserPlus,
-  UserCheck,
-  Users,
-  X,
-} from "lucide-react";
+import { UserPlus, UserCheck, Users, X } from "lucide-react";
 
 import { useAuth } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
@@ -16,11 +10,13 @@ import api from "../api/axios";
 const FollowersFollowing = ({
   followers: initialFollowers = [],
   following: initialFollowing = [],
-  initialTab = "Followers",
+  initialTab = "followers",
   onClose,
   onFollowUpdate,
 }) => {
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(
+    initialTab.toLowerCase() === "following" ? "Following" : "Followers",
+  );
 
   const [followers, setFollowers] = useState(initialFollowers);
   const [following, setFollowing] = useState(initialFollowing);
@@ -28,6 +24,14 @@ const FollowersFollowing = ({
 
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  useEffect(() => {
+    setFollowers(initialFollowers);
+  }, [initialFollowers]);
+
+  useEffect(() => {
+    setFollowing(initialFollowing);
+  }, [initialFollowing]);
+  console.log(followers, following)
 
   const dataArray = [
     {
@@ -42,9 +46,7 @@ const FollowersFollowing = ({
     },
   ];
 
-  const activeData = dataArray.find(
-    (item) => item.label === activeTab
-  );
+  const activeData = dataArray.find((item) => item.label === activeTab);
 
   /*
    * Open selected user's profile.
@@ -56,7 +58,6 @@ const FollowersFollowing = ({
 
     navigate(`/profile/${userId}`);
   };
-
 
   const handleFollowToggle = async (person) => {
     const personId = person?.id || person?._id;
@@ -77,23 +78,17 @@ const FollowersFollowing = ({
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = response.data;
 
       if (!data?.success) {
-        toast.error(
-          data?.message ||
-            "Unable to update follow status"
-        );
+        toast.error(data?.message || "Unable to update follow status");
         return;
       }
 
-
-
       if (data.following) {
-        
         setFollowers((prev) =>
           prev.map((item) =>
             String(item.id) === String(personId)
@@ -101,15 +96,13 @@ const FollowersFollowing = ({
                   ...item,
                   following: true,
                 }
-              : item
-          )
+              : item,
+          ),
         );
 
         setFollowing((prev) => {
           const exists = prev.some(
-            (item) =>
-              String(item.id) ===
-              String(personId)
+            (item) => String(item.id) === String(personId),
           );
 
           if (exists) {
@@ -119,7 +112,7 @@ const FollowersFollowing = ({
                     ...item,
                     following: true,
                   }
-                : item
+                : item,
             );
           }
 
@@ -139,15 +132,11 @@ const FollowersFollowing = ({
                   ...item,
                   following: false,
                 }
-              : item
-          )
+              : item,
+          ),
         );
         setFollowing((prev) =>
-          prev.filter(
-            (item) =>
-              String(item.id) !==
-              String(personId)
-          )
+          prev.filter((item) => String(item.id) !== String(personId)),
         );
       }
 
@@ -156,21 +145,18 @@ const FollowersFollowing = ({
        */
       onFollowUpdate?.({
         following: data.following,
-        followers_count:
-          data.followers_count,
-        following_count:
-          data.following_count,
+        followers_count: data.followers_count,
+        following_count: data.following_count,
       });
 
       toast.success(
         data.following
           ? "User followed successfully"
-          : "User unfollowed successfully"
+          : "User unfollowed successfully",
       );
     } catch (error) {
       toast.error(
-        error.response?.data?.message ||
-          "Unable to update follow status"
+        error.response?.data?.message || "Unable to update follow status",
       );
     } finally {
       setLoadingUserId(null);
@@ -179,7 +165,6 @@ const FollowersFollowing = ({
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-
       {/* HEADER */}
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-5">
         <div>
@@ -212,9 +197,7 @@ const FollowersFollowing = ({
               <button
                 key={tab.label}
                 type="button"
-                onClick={() =>
-                  setActiveTab(tab.label)
-                }
+                onClick={() => setActiveTab(tab.label)}
                 className={`relative flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 ${
                   activeTab === tab.label
                     ? "text-[#1877F2]"
@@ -246,9 +229,7 @@ const FollowersFollowing = ({
 
       {/* LIST HEADER */}
       <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
-        <h3 className="text-sm font-semibold text-slate-900">
-          {activeTab}
-        </h3>
+        <h3 className="text-sm font-semibold text-slate-900">{activeTab}</h3>
 
         <p className="mt-0.5 text-xs text-slate-400">
           {activeTab === "Followers"
@@ -259,17 +240,12 @@ const FollowersFollowing = ({
 
       {/* USERS LIST */}
       <div className="max-h-[55vh] overflow-y-auto">
-
         {activeData?.value.length > 0 ? (
           <div className="divide-y divide-gray-100">
-
             {activeData.value.map((person) => {
-              const personId =
-                person?.id || person?._id;
+              const personId = person?.id || person?._id;
 
-              const isLoading =
-                String(loadingUserId) ===
-                String(personId);
+              const isLoading = String(loadingUserId) === String(personId);
 
               /*
                * Followers:
@@ -281,30 +257,19 @@ const FollowersFollowing = ({
                * everyone in this list is already followed.
                */
               const isFollowing =
-                activeTab === "Following"
-                  ? true
-                  : person?.following === true;
+                activeTab === "Following" ? true : person?.following === true;
 
               return (
                 <div
                   key={personId}
-                  onClick={() =>
-                    handleUserClick(personId)
-                  }
+                  onClick={() => handleUserClick(personId)}
                   className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-gray-50 sm:px-5 sm:py-4"
                 >
-
                   {/* IMAGE */}
                   <div className="shrink-0">
                     <img
-                      src={
-                        person?.profile_picture 
-                      }
-                      alt={
-                        person?.full_name ||
-                        person?.username ||
-                        "User"
-                      }
+                      src={person?.profile_picture}
+                      alt={person?.full_name || person?.username || "User"}
                       className="h-11 w-11 rounded-full object-cover sm:h-12 sm:w-12"
                     />
                   </div>
@@ -312,36 +277,28 @@ const FollowersFollowing = ({
                   {/* INFO */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900">
-                      {person?.full_name ||
-                        "User"}
+                      {person?.full_name || "User"}
                     </p>
 
                     <p className="truncate text-xs font-medium text-slate-400">
-                      {person?.username
-                        ? `@${person.username}`
-                        : ""}
+                      {person?.username ? `@${person.username}` : ""}
                     </p>
 
                     <p className="mt-0.5 hidden max-w-md truncate text-xs text-slate-400 sm:block">
-                      {person?.bio ||
-                        "No bio available"}
+                      {person?.bio || "No bio available"}
                     </p>
                   </div>
 
                   {/* ACTION */}
                   <div className="shrink-0">
-
                     {/* FOLLOWERS */}
-                    {activeTab ===
-                      "Followers" && (
+                    {activeTab === "Followers" && (
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleFollowToggle(
-                            person
-                          );
+                          handleFollowToggle(person);
                         }}
                         className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
                           isFollowing
@@ -358,24 +315,19 @@ const FollowersFollowing = ({
                         )}
 
                         <span className="hidden sm:inline">
-                          {isFollowing
-                            ? "Following"
-                            : "Follow Back"}
+                          {isFollowing ? "Following" : "Follow Back"}
                         </span>
                       </button>
                     )}
 
                     {/* FOLLOWING */}
-                    {activeTab ===
-                      "Following" && (
+                    {activeTab === "Following" && (
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleFollowToggle(
-                            person
-                          );
+                          handleFollowToggle(person);
                         }}
                         className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-gray-100 px-3 text-xs font-semibold text-slate-700 transition hover:bg-gray-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
@@ -386,9 +338,7 @@ const FollowersFollowing = ({
                         )}
 
                         <span className="hidden sm:inline">
-                          {isLoading
-                            ? "..."
-                            : "Following"}
+                          {isLoading ? "..." : "Following"}
                         </span>
                       </button>
                     )}
@@ -409,8 +359,7 @@ const FollowersFollowing = ({
             </p>
 
             <p className="mx-auto mt-1 max-w-xs text-xs text-slate-400">
-              People will appear here when your
-              connections grow.
+              People will appear here when your connections grow.
             </p>
           </div>
         )}
@@ -420,4 +369,3 @@ const FollowersFollowing = ({
 };
 
 export default FollowersFollowing;
-

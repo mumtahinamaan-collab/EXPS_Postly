@@ -256,7 +256,7 @@ def get_profile(request):
         "following": [
             {
                 **serialize_user(following_user),
-                "following": True,
+                "following": request.user.following.filter(id=following_user.id).exists(),
                 }
             for following_user in following
             ],
