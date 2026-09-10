@@ -3,24 +3,34 @@ import logo from "../assets/logo.png";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Menu from "./Menu";
 import { CirclePlus, LogOut } from "lucide-react";
-import {  useClerk } from "@clerk/react";
+import { useClerk } from "@clerk/react";
 import { useSelector } from "react-redux";
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+const Sidebar = () => {
   const navigate = useNavigate();
 
   const user = useSelector((state) => state.user.value);
 
   const { signOut } = useClerk();
 
-
-  
-
   return (
     <div
-      className={`w-60 xl:w-72 bg-white border-r border-[#f3dce8] flex flex-col justify-between items-center max-sm:absolute top-0 bottom-0 z-20 ${
-        sidebarOpen ? "translate-x-0" : "max-sm:-translate-x-full"
-      } transition-all duration-300 ease-in-out`}
+      className="
+  hidden
+  sm:flex
+  sm:w-60
+  h-screen
+  sticky
+  top-0
+  xl:w-72
+  bg-white
+  border-r
+  border-[#f3dce8]
+  flex-col
+  justify-between
+  items-center
+  z-20
+"
     >
       {/* TOP */}
       <div className="w-full">
@@ -33,7 +43,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
         <hr className="border-[#f3dce8] mb-8" />
 
-        <Menu setSidebarOpen={setSidebarOpen} />
+        <Menu />
 
         {/* Create Post */}
         <Link
@@ -51,23 +61,20 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       {/* USER */}
       <div className="w-full border-t border-[#f3dce8] p-4 px-7 flex items-center justify-between">
         <div className="flex gap-2 items-center cursor-pointer">
-  <img
-    src={user?.profile_picture }
-    alt={user.full_name}
-    className="w-9 h-9 rounded-full object-cover"
-  />
+          <img
+            src={user?.profile_picture}
+            alt={user.full_name}
+            className="w-9 h-9 rounded-full object-cover"
+          />
 
-  <div>
-    <h1 className="text-sm font-medium text-gray-800">
-      {user.full_name}
-    </h1>
+          <div>
+            <h1 className="text-sm font-medium text-gray-800">
+              {user.full_name}
+            </h1>
 
-    <p className="text-xs text-slate-400">
-      @{user.username}
-    </p>
-  </div>
-</div>
-       
+            <p className="text-xs text-slate-400">@{user.username}</p>
+          </div>
+        </div>
 
         <LogOut
           onClick={() => signOut()}

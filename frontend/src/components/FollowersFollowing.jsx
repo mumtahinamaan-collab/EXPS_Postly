@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   UserPlus,
   UserCheck,
@@ -14,83 +14,20 @@ import toast from "react-hot-toast";
 import api from "../api/axios";
 
 const FollowersFollowing = ({
-  user,
+  followers: initialFollowers = [],
+  following: initialFollowing = [],
   initialTab = "Followers",
   onClose,
   onFollowUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
-
-  const [loading, setLoading] = useState(true);
+  const [followers, setFollowers] = useState(initialFollowers);
+  const [following, setFollowing] = useState(initialFollowing);
   const [loadingUserId, setLoadingUserId] = useState(null);
 
   const navigate = useNavigate();
   const { getToken } = useAuth();
-
-  /*
-   * Get followers + following from:
-   *
-   * GET /api/user/social/<user_id>/
-   */
-  const fetchSocialData = async () => {
-    if (!user?.id) return;
-
-    try {
-      setLoading(true);
-
-      const token = await getToken();
-
-      const response = await api.get(
-        `/user/social/${user.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = response.data;
-
-      if (!data?.success) {
-        toast.error(
-          data?.message || "Unable to load connections"
-        );
-        return;
-      }
-
-      /*
-       * Backend response:
-       *
-       * {
-       *   success: true,
-       *   followers: [...],
-       *   following: [...],
-       *   followers_count: ...,
-       *   following_count: ...
-       * }
-       */
-
-      setFollowers(data.followers || []);
-      setFollowing(data.following || []);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to load connections"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /*
-   * Load social data whenever selected profile changes.
-   */
-  useEffect(() => {
-    fetchSocialData();
-  }, [user?.id]);
 
   const dataArray = [
     {
@@ -168,9 +105,6 @@ const FollowersFollowing = ({
           )
         );
 
-        /*
-         * Add user to Following list.
-         */
         setFollowing((prev) => {
           const exists = prev.some(
             (item) =>
@@ -208,10 +142,6 @@ const FollowersFollowing = ({
               : item
           )
         );
-
-        /*
-         * Remove user from Following list.
-         */
         setFollowing((prev) =>
           prev.filter(
             (item) =>
@@ -330,12 +260,7 @@ const FollowersFollowing = ({
       {/* USERS LIST */}
       <div className="max-h-[55vh] overflow-y-auto">
 
-        {/* LOADING */}
-        {loading ? (
-          <div className="flex items-center justify-center px-4 py-14">
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-gray-200 border-t-[#1877F2]" />
-          </div>
-        ) : activeData?.value.length > 0 ? (
+        {activeData?.value.length > 0 ? (
           <div className="divide-y divide-gray-100">
 
             {activeData.value.map((person) => {

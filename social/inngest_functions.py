@@ -32,7 +32,10 @@ def sync_user_creation(data):
     username = data.get("username") or ""
 
     if User.objects.filter(username=username).exists():
-        username = f"{username}_{clerk_id[-6:]}"
+        return {
+            "success": False,
+            "message": "Username already exists"
+    }
 
     user, created = User.objects.get_or_create(
         id=clerk_id,
@@ -108,7 +111,7 @@ async def sync_user_updation(ctx: inngest.Context):
     return user
 
 
-def update_user_data(clerk_id, email, full_name):
+def update_user_data(clerk_id, email, full_name, username):
 
     updated = User.objects.filter(id=clerk_id).update(
         email=email,

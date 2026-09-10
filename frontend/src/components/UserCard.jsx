@@ -79,6 +79,9 @@ const UserCard = ({ user }) => {
       className="
         group
         w-full
+        min-w-0
+        max-w-full
+        overflow-hidden
         cursor-pointer
         rounded-xl
         border border-[#f3dce8]
@@ -92,50 +95,74 @@ const UserCard = ({ user }) => {
         hover:shadow-md
       "
     >
-      {/* PROFILE IMAGE */}
-      <div className="flex justify-center">
+      {/* PROFILE IMAGE + NAME */}
+      <div className="flex min-w-0 flex-col items-center">
         <img
-          src={user?.profile_picture }
+          src={user?.profile_picture}
           alt={user?.full_name || "User"}
           className="
-            h-14 w-14
+            h-14
+            w-14
+            shrink-0
             rounded-full
-            border-2 border-white
+            border-2
+            border-white
             object-cover
           "
         />
-      </div>
 
-      {/* NAME */}
-      <div className="mt-2 text-center">
-        <p className="truncate text-sm font-semibold text-slate-900">
-          {user?.full_name || "User"}
-        </p>
-
-        {user?.username && (
-          <p className="truncate text-[11px] text-slate-400">
-            @{user.username}
+        {/* NAME */}
+        <div >
+        <div className="mt-2 min-w-0 max-w-full text-center">
+          <p className="truncate text-sm font-semibold text-slate-900">
+            {user?.full_name || "User"}
           </p>
-        )}
+
+          {user?.username && (
+            <p className="truncate text-[11px] text-slate-400">
+              @{user.username}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* BIO */}
-      <p className="mx-auto mt-1.5 line-clamp-2 min-h-[28px] max-w-[220px] text-center text-[10px] leading-3.5 text-slate-500">
+      <p
+        className="
+          mx-auto
+          mt-1.5
+          min-h-[28px]
+          max-w-[220px]
+          overflow-hidden
+          text-center
+          text-[10px]
+          leading-3.5
+          text-slate-500
+          line-clamp-2
+        "
+      >
         {user?.bio ||
-          "Exploring life and connecting with amazing people."}
+          " "}
       </p>
 
       {/* LOCATION + FOLLOWERS */}
-      <div className="mt-2 flex items-center justify-center gap-2">
+      <div className="mt-2 flex min-w-0 items-center justify-center gap-2">
         {user?.location && (
           <div
             className="
-              flex max-w-[130px] items-center gap-1
+              flex
+              min-w-0
+              max-w-[130px]
+              items-center
+              gap-1
               rounded-full
-              border border-[#eeeeee]
+              border
+              border-[#eeeeee]
               bg-[#fafafa]
-              px-2 py-1
-              text-[9px] text-slate-500
+              px-2
+              py-1
+              text-[9px]
+              text-slate-500
             "
           >
             <MapPin className="h-3 w-3 shrink-0" />
@@ -150,10 +177,13 @@ const UserCard = ({ user }) => {
           className="
             shrink-0
             rounded-full
-            border border-[#eeeeee]
+            border
+            border-[#eeeeee]
             bg-[#fafafa]
-            px-2 py-1
-            text-[9px] text-slate-500
+            px-2
+            py-1
+            text-[9px]
+            text-slate-500
           "
         >
           <span className="font-semibold text-slate-700">
@@ -164,6 +194,7 @@ const UserCard = ({ user }) => {
           </span>{" "}
           Followers
         </div>
+      </div>
       </div>
 
       {/* FOLLOW BUTTON */}
@@ -216,4 +247,3 @@ const UserCard = ({ user }) => {
 };
 
 export default UserCard;
-

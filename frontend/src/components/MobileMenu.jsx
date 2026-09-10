@@ -10,7 +10,7 @@ import {
 
 import { useNotifications } from "../context/NotificationContext";
 
-const MobileMenu = ({ setSidebarOpen }) => {
+const MobileMenu = () => {
   const { unreadCount } = useNotifications();
 
   return (

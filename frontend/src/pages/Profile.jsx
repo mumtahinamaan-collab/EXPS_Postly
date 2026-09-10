@@ -6,7 +6,6 @@ import {
   useParams,
   Link,
   useNavigate,
-  useSearchParams,
 } from "react-router-dom";
 import { MoreVertical, Grid3X3, Image, Heart, UserRound } from "lucide-react";
 import Loading from "../components/Loading";
@@ -33,9 +32,6 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("post");
   const [showedit, setShowEdit] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
-  const [searchParams] = useSearchParams();
-
-  const postId = searchParams.get("post");
 
   const navigate = useNavigate();
 
@@ -194,7 +190,6 @@ const Profile = () => {
                     <PostCard
                       className="mt-2 w-full rounded-xl border border-gray-200 bg-white  sm:mt-6 sm:p-6"
                       post={post}
-                      highlightPostId={postId}
                       onPostUpdated={(updatedPost) => {
                         setPosts((prevPosts) =>
                           prevPosts.map((item) =>
@@ -336,6 +331,8 @@ const Profile = () => {
           <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <FollowersFollowing
               user={user}
+              followers={user.followers}
+              following={user.following}
               initialTab={connectionTab}
               onClose={() => setConnectionTab(null)}
             />

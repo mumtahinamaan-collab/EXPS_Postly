@@ -90,18 +90,11 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_likes_count(self, obj):
-        return getattr(
-            obj,
-            "likes_count",
-            obj.likes.count(),
-        )
+        return obj.likes.count(),
+
 
     def get_comments_count(self, obj):
-        return getattr(
-            obj,
-            "comments_count",
-            obj.comments.count(),
-        )
+        return obj.comments.count(),
 
     def get_is_liked(self, obj):
 

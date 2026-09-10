@@ -30,7 +30,6 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = (
         "id",
         "username",
-        "email",
         "full_name",
         "location",
     )
@@ -64,7 +63,6 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = (
         "content",
         "user__username",
-        "user__email",
     )
 
     list_filter = (

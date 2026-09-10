@@ -9,7 +9,7 @@ import {
 
 import { useNotifications } from "../context/NotificationContext";
 
-const MenuItems = ({ setSidebarOpen }) => {
+const MenuItems = () => {
   const { unreadCount } = useNotifications();
 
   const menuItems = [
@@ -42,7 +42,6 @@ const MenuItems = ({ setSidebarOpen }) => {
           key={to}
           to={to}
           end={to === "/"}
-          onClick={() => setSidebarOpen(false)}
           className={({ isActive }) =>
             `px-3 py-2 flex items-center gap-3 rounded-xl transition ${
               isActive

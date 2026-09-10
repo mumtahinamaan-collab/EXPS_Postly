@@ -66,13 +66,7 @@ def update_user_data(request):
 
         if username:
 
-            username_exists = (
-                User.objects
-                .filter(username=username)
-                .exclude(id=user.id)
-                .exists()
-            )
-
+            username_exists = (User.objects.filter(username=username).exclude(id=user.id).exists())
             if username_exists:
                 return Response(
                     {
@@ -219,6 +213,8 @@ def get_profile(request):
 
     followers_count = user.followers.count()
     following_count = user.following.count()
+    followers = user.followers.all()
+    following = user.following.all()
 
     posts = (
         Post.objects
@@ -249,6 +245,21 @@ def get_profile(request):
         "is_following": is_following,
         "followers_count": followers_count,
         "following_count": following_count,
+        "followers": [
+            {
+                **serialize_user(follower),
+                "following": (request.user.following.filter(id=follower.id).exists()),
+            }
+            for follower in followers
+        ],
+
+        "following": [
+            {
+                **serialize_user(following_user),
+                "following": True,
+                }
+            for following_user in following
+            ],
         "posts_count": posts.count(),
         "liked_posts": [
             serialize_post(post, request)
@@ -427,160 +438,3 @@ def toggle_follow(request):
 
 
 
-# ==================================================
-# USER SOCIAL DATA
-# ==================================================
-
-@api_view(["GET"])
-@authentication_classes([ClerkAuthentication])
-@permission_classes([IsAuthenticated])
-def user_social_data(request, user_id):
-
-    try:
-
-        user = User.objects.get(
-            id=user_id
-        )
-
-    except User.DoesNotExist:
-
-        return Response(
-            {
-                "success": False,
-                "message": "User not found.",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    # ----------------------------------------------
-    # FOLLOWERS
-    # ----------------------------------------------
-
-    followers = user.followers.all()
-
-    # ----------------------------------------------
-    # FOLLOWING
-    # ----------------------------------------------
-
-    following = user.following.all()
-
-    # ----------------------------------------------
-    # USER POSTS
-    # ----------------------------------------------
-
-    posts = (
-        Post.objects
-        .filter(user=user)
-        .annotate(
-            likes_count=Count(
-                "likes",
-                distinct=True
-            ),
-            comments_count=Count(
-                "comments",
-                distinct=True
-            ),
-        )
-        .select_related("user")
-        .order_by("-created_at")
-    )
-
-    # ----------------------------------------------
-    # TOTAL LIKES
-    # ----------------------------------------------
-
-    total_likes = sum(
-        post.likes_count
-        for post in posts
-    )
-
-    # ----------------------------------------------
-    # LIKED POSTS
-    # ----------------------------------------------
-
-    liked_posts = (
-        Post.objects
-        .filter(
-            likes__id=user.id
-        )
-        .distinct()
-        .annotate(
-            likes_count=Count(
-                "likes",
-                distinct=True
-            ),
-            comments_count=Count(
-                "comments",
-                distinct=True
-            ),
-        )
-        .select_related("user")
-        .order_by("-created_at")
-    )
-
-    # ----------------------------------------------
-    # FOLLOW STATUS
-    # ----------------------------------------------
-
-    is_following = (
-        request.user.following
-        .filter(id=user.id)
-        .exists()
-    )
-
-    # ----------------------------------------------
-    # RESPONSE
-    # ----------------------------------------------
-
-    return Response({
-
-        "success": True,
-
-        "user": serialize_user(user),
-
-        "is_following": is_following,
-
-        "followers_count": followers.count(),
-
-        "following_count": following.count(),
-
-        "followers": [
-            {
-                **serialize_user(follower),
-                "following": (
-                    request.user.following
-                    .filter(id=follower.id)
-                    .exists()
-                ),
-            }
-            for follower in followers
-        ],
-
-        "following": [
-            {
-                **serialize_user(following_user),
-                "following": True,
-            }
-            for following_user in following
-        ],
-
-        "posts_count": posts.count(),
-
-        "total_likes": total_likes,
-
-        "posts": [
-            serialize_post(
-                post,
-                request,
-            )
-            for post in posts
-        ],
-
-        "liked_posts": [
-            serialize_post(
-                post,
-                request,
-            )
-            for post in liked_posts
-        ],
-    })

@@ -28,10 +28,6 @@ jwks_client = PyJWKClient(CLERK_JWKS_URL)
 
 
 def verify_clerk_token(token):
-    """
-    Verify Clerk JWT token and return the Django User.
-    Returns None if token is invalid.
-    """
 
     if not token:
         return None

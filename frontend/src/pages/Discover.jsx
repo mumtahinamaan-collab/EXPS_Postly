@@ -80,7 +80,7 @@ const Discover = () => {
   }, [getToken, dispatch]);
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#fcfcfc]">
+    <div className="min-h-screen w-full   h-full overflow-y-auto bg-[#fcfcfc]">
 
       {/* HEADER */}
       <div className="border-b border-[#f3dce8] bg-white">

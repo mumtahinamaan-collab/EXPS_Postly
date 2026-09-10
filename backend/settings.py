@@ -27,10 +27,8 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g3+jl9i*4ghuu07l@83o38^cttem(=&mgu!h^qicucfugd#z0s'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 INNGEST_SIGNING_KEY = os.getenv("INNGEST_SIGNING_KEY")
 INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY")
 CLERK_WEBHOOK_SIGNING_SECRET = os.getenv("CLERK_WEBHOOK_SIGNING_SECRET")

@@ -22,10 +22,6 @@ const ProfileModal = ({ setShowEdit }) => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-
-
-
-
     const userData = new FormData();
 
     const {

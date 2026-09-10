@@ -6,7 +6,6 @@ from .views.user_views import (
     get_profile,
     discover_users,
     toggle_follow,
-    user_social_data,
 )
 
 from .views.post_views import (
@@ -62,14 +61,6 @@ urlpatterns = [
         toggle_follow,
         name="toggle-follow",
     ),
-
-    path(
-        "user/social/<str:user_id>/",
-        user_social_data,
-        name="user-social-data",
-    ),
-
-
     # ==================================================
     # POSTS
     # ==================================================

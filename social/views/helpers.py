@@ -5,12 +5,7 @@ from ..serializers import (
 )
 
 
-def get_image_url(
-    image,
-    default_profile=True,
-    width=512,
-):
-
+def get_image_url(image,default_profile=True,width=512,):
     DEFAULT_PROFILE_PICTURE = (
         "https://ik.imagekit.io/mumtahina/"
         "postly/profile_pictures/image.jpg"
@@ -26,10 +21,7 @@ def get_image_url(
 
     image_value = str(image)
 
-    if (
-        image_value.startswith("http://")
-        or image_value.startswith("https://")
-    ):
+    if (image_value.startswith("http://") or image_value.startswith("https://")):
         if "ik.imagekit.io" in image_value:
             separator = "&" if "?" in image_value else "?"
 
