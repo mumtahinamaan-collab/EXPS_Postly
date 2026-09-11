@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useCallback,
@@ -59,39 +58,18 @@ export const NotificationProvider = ({ children }) => {
         });
     };
 
-    window.addEventListener(
-      "click",
-      unlockAudio,
-      { once: true }
-    );
+    window.addEventListener("click", unlockAudio, { once: true });
 
-    window.addEventListener(
-      "touchstart",
-      unlockAudio,
-      { once: true }
-    );
+    window.addEventListener("touchstart", unlockAudio, { once: true });
 
-    window.addEventListener(
-      "keydown",
-      unlockAudio,
-      { once: true }
-    );
+    window.addEventListener("keydown", unlockAudio, { once: true });
 
     return () => {
-      window.removeEventListener(
-        "click",
-        unlockAudio
-      );
+      window.removeEventListener("click", unlockAudio);
 
-      window.removeEventListener(
-        "touchstart",
-        unlockAudio
-      );
+      window.removeEventListener("touchstart", unlockAudio);
 
-      window.removeEventListener(
-        "keydown",
-        unlockAudio
-      );
+      window.removeEventListener("keydown", unlockAudio);
     };
   }, []);
 
@@ -130,19 +108,14 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
 
-      const { data } = await api.get(
-        "/notifications/",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const { data } = await api.get("/notifications/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (data.success) {
-        setUnreadCount(
-          data.unread_count || 0
-        );
+        setUnreadCount(data.unread_count || 0);
       }
     } catch {
       // Keep notification errors silent.
@@ -165,61 +138,52 @@ export const NotificationProvider = ({ children }) => {
           return;
         }
 
-        const apiBaseUrl =
-          import.meta.env.VITE_BASEURL;
+        const apiBaseUrl = import.meta.env.VITE_BASEURL;
 
-        const httpUrl = apiBaseUrl.replace(
-          /\/api\/?$/,
-          ""
-        );
+        const httpUrl = apiBaseUrl.replace(/\/api\/?$/, "");
 
         const wsUrl = httpUrl
-          .replace(
-            /^https:\/\//,
-            "wss://"
-          )
-          .replace(
-            /^http:\/\//,
-            "ws://"
-          );
+          .replace(/^https:\/\//, "wss://")
+          .replace(/^http:\/\//, "ws://");
 
         socket = new WebSocket(
-          `${wsUrl}/ws/notifications/?token=${encodeURIComponent(
-            token
-          )}`
+          `${wsUrl}/ws/notifications/?token=${encodeURIComponent(token)}`,
         );
+        socket.onopen = () => {
+          fetchUnreadCount();
+        };
 
         socket.onmessage = (event) => {
           try {
-            const data = JSON.parse(
-              event.data
-            );
+            const data = JSON.parse(event.data);
 
-            if (
-              data.type !== "notification" ||
-              !data.notification
-            ) {
+            if (data.type !== "notification" || !data.notification) {
               return;
             }
 
-            setUnreadCount(
-              (prev) => prev + 1
-            );
+            setUnreadCount((prev) => prev + 1);
 
             // 🔊 PLAY NOTIFICATION SOUND
             playNotificationSound();
 
             toast.success(
-              data.notification.message ||
-                "You have a new notification"
+              data.notification.message || "You have a new notification",
             );
           } catch {
             // Ignore invalid WebSocket messages.
           }
         };
 
-        socket.onerror = () => {
-          // Keep WebSocket errors silent.
+        socket.onclose = () => {
+          if (cancelled) {
+            return;
+          }
+
+          setTimeout(() => {
+            if (!cancelled) {
+              connectWebSocket();
+            }
+          }, 3000);
         };
       } catch {
         // Keep connection errors silent.
@@ -235,10 +199,7 @@ export const NotificationProvider = ({ children }) => {
         socket.close();
       }
     };
-  }, [
-    getToken,
-    playNotificationSound,
-  ]);
+  }, [getToken, playNotificationSound]);
 
   // ==================================================
   // INITIAL COUNT
@@ -252,13 +213,9 @@ export const NotificationProvider = ({ children }) => {
   // MARK AS READ
   // ==================================================
 
-  const decreaseUnreadCount =
-    useCallback(() => {
-      setUnreadCount(
-        (prev) =>
-          Math.max(prev - 1, 0)
-      );
-    }, []);
+  const decreaseUnreadCount = useCallback(() => {
+    setUnreadCount((prev) => Math.max(prev - 1, 0));
+  }, []);
 
   return (
     <NotificationContext.Provider
@@ -275,15 +232,13 @@ export const NotificationProvider = ({ children }) => {
 };
 
 export const useNotifications = () => {
-  const context =
-    useContext(NotificationContext);
+  const context = useContext(NotificationContext);
 
   if (!context) {
     throw new Error(
-      "useNotifications must be used inside NotificationProvider"
+      "useNotifications must be used inside NotificationProvider",
     );
   }
 
   return context;
 };
-

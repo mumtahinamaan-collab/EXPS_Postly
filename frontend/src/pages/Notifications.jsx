@@ -61,7 +61,7 @@ const Notifications = () => {
 
   useEffect(() => {
     fetchNotifications();
-    fetchUnreadCount();
+  
   }, []);
 
   // ==================================================
